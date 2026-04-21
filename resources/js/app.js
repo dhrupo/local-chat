@@ -21,7 +21,7 @@ router.beforeEach(async (to) => {
     }
 
     if (to.meta.requiresAuth && !authStore.user) {
-        return { name: "login" };
+        return { name: "setup" };
     }
 
     if (to.meta.guestOnly && authStore.user) {

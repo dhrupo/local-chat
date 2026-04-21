@@ -13,7 +13,7 @@ class RoomsUpdated implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public int $userId,
+        public int $participantId,
         public ?int $roomId = null,
         public string $reason = 'updated'
     ) {
@@ -22,7 +22,7 @@ class RoomsUpdated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel("user.{$this->userId}"),
+            new PrivateChannel("participant.{$this->participantId}"),
         ];
     }
 

@@ -4,13 +4,13 @@ use App\Http\Controllers\Api\ChatMessageController;
 use App\Http\Controllers\Api\ChatRoomController;
 use App\Http\Controllers\Api\ChatRoomMemberController;
 use App\Http\Controllers\Api\MeController;
+use App\Http\Controllers\Api\ParticipantDirectoryController;
 use App\Http\Controllers\Api\PresenceController;
-use App\Http\Controllers\Api\UserDirectoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'last.seen'])->group(function () {
     Route::get('/me', MeController::class);
-    Route::get('/users', UserDirectoryController::class);
+    Route::get('/participants', ParticipantDirectoryController::class);
     Route::post('/presence/ping', PresenceController::class);
 
     Route::get('/chat/rooms', [ChatRoomController::class, 'index']);

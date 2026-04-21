@@ -1,14 +1,14 @@
 # Local Chat
 
-Local Chat is a Laravel 12 + Vue 3 application for text-based group chat on a single Wi-Fi network.
+Local Chat is a Laravel 12 + Vue 3 application for realtime group chat on a single Wi-Fi network.
 
 Current scope:
 
-- session-based login
+- device-based onboarding with `display_name + device_uuid`
 - group rooms
 - realtime text messaging over WebSockets
 - room membership and unread counts
-- live room updates and room presence
+- room presence on the local network
 
 The app uses:
 
@@ -20,20 +20,16 @@ The app uses:
 - `Laravel Reverb`
 - `Laravel Echo`
 
-## Demo Users
+## Identity Model
 
-After seeding, these demo accounts are available:
+This app does not use internet accounts, registration, or passwords.
 
-- `admin@localchat.test`
-- `aisha@localchat.test`
-- `nafis@localchat.test`
-- `tania@localchat.test`
+Each browser/device:
 
-All seeded demo users use the password:
-
-```text
-password
-```
+1. generates a local `device_uuid`
+2. asks the user for a display name
+3. stores that identity locally
+4. reconnects to the LAN server with the same device identity later
 
 ## Local Setup
 
@@ -58,10 +54,10 @@ php artisan key:generate
 
 4. Configure MySQL credentials in `.env`.
 
-5. Run migrations and seed the demo users:
+5. Run the schema:
 
 ```bash
-php artisan migrate --seed
+php artisan migrate
 ```
 
 ## Run The App
@@ -88,18 +84,18 @@ php artisan reverb:start --host=0.0.0.0 --port=8080
 
 ## LAN Access
 
-If you want phones or other laptops on the same Wi-Fi to connect:
+If phones or other laptops on the same Wi-Fi should connect:
 
 1. Find the host machine's LAN IP, for example `192.168.0.15`.
 2. Set `APP_URL` in `.env` to `http://192.168.0.15:8000`.
 3. Keep `REVERB_PORT=8080`.
-4. Rebuild frontend assets after changing the env values:
+4. Rebuild frontend assets after env changes:
 
 ```bash
 npm run build
 ```
 
-The client websocket host follows the browser hostname by default, so opening the app via the LAN IP is usually enough for websocket connections as long as port `8080` is reachable from the same Wi-Fi network.
+The client websocket host follows the browser hostname by default, so opening the app through the LAN IP is usually enough as long as port `8080` is reachable on the network.
 
 ## Test And Build
 
@@ -117,4 +113,4 @@ npm run build
 
 ## Current Next Step
 
-The text chat and group room foundation is in place. The next logical feature is `1:1 voice/video signaling` on top of the existing realtime and user presence layer.
+The next logical feature is room file sharing, followed by `1:1 voice/video signaling` on top of the existing realtime and device presence layer.

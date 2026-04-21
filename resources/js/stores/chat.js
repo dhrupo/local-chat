@@ -80,7 +80,7 @@ export const useChatStore = defineStore("chat", {
             }
         },
         async loadDirectory(search = "") {
-            const { data } = await window.axios.get("/api/users", {
+            const { data } = await window.axios.get("/api/participants", {
                 params: { query: search || undefined },
             });
 
@@ -200,7 +200,7 @@ export const useChatStore = defineStore("chat", {
             this.stopRealtime();
 
             if (userId) {
-                window.Echo.private(`user.${userId}`).listen(".chat.rooms.updated", async (event) => {
+                window.Echo.private(`participant.${userId}`).listen(".chat.rooms.updated", async (event) => {
                     await this.loadRooms();
 
                     if (event.room_id && event.room_id === this.activeRoomId && this.activeRoom?.joined) {
@@ -215,7 +215,7 @@ export const useChatStore = defineStore("chat", {
         },
         stopRealtime(userId = null) {
             if (userId) {
-                window.Echo.leave(`user.${userId}`);
+                window.Echo.leave(`participant.${userId}`);
             }
 
             for (const roomId of roomChannels.keys()) {

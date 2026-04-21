@@ -18,7 +18,7 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-Broadcast::channel('user.{id}', function ($user, $id) {
+Broadcast::channel('participant.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
@@ -41,8 +41,9 @@ Broadcast::channel('chat.presence.{roomId}', function ($user, $roomId) {
 
     return [
         'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
+        'display_name' => $user->display_name,
+        'name' => $user->display_name,
         'initials' => $user->initials,
+        'avatar_color' => $user->avatar_color,
     ];
 });

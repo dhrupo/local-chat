@@ -74,7 +74,7 @@ const submit = () => {
                 <el-option
                     v-for="user in availableUsers"
                     :key="user.id"
-                    :label="`${user.name} (${user.email})`"
+                    :label="user.display_name"
                     :value="user.id"
                 />
             </el-select>

@@ -1,0 +1,27 @@
+<?php
+
+namespace Tests\Feature\Auth;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class DeviceSessionTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_device_can_connect_and_fetch_profile(): void
+    {
+        $this->get('/sanctum/csrf-cookie');
+
+        $this->postJson('/session/device', [
+            'device_uuid' => '0f0d7aa0-6d4b-47a1-b53a-497546f0ed91',
+            'display_name' => 'Hallway Tablet',
+            'avatar_color' => 'lagoon',
+        ])->assertOk();
+
+        $this->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('data.display_name', 'Hallway Tablet')
+            ->assertJsonPath('data.avatar_color', 'lagoon');
+    }
+}

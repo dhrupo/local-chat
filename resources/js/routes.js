@@ -1,4 +1,4 @@
-import LoginPage from "./pages/LoginPage.vue";
+import SetupPage from "./pages/SetupPage.vue";
 import ChatPage from "./pages/ChatPage.vue";
 
 export default [
@@ -7,9 +7,9 @@ export default [
         redirect: "/chat",
     },
     {
-        path: "/login",
-        name: "login",
-        component: LoginPage,
+        path: "/setup",
+        name: "setup",
+        component: SetupPage,
         meta: {
             guestOnly: true,
         },

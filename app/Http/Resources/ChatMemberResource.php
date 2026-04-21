@@ -11,12 +11,12 @@ class ChatMemberResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'email' => $this->email,
+            'display_name' => $this->display_name,
+            'name' => $this->display_name,
             'initials' => $this->initials,
+            'avatar_color' => $this->avatar_color,
             'is_online' => $this->is_online,
             'last_seen_at' => optional($this->last_seen_at)->toIso8601String(),
-            'role' => $this->role,
             'membership_role' => $this->pivot?->role,
         ];
     }

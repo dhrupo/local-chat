@@ -99,7 +99,7 @@ watch(
                         "
                     >
                         <div class="flex items-center gap-3 text-xs opacity-80">
-                            <span class="font-semibold">{{ message.sender.name }}</span>
+                            <span class="font-semibold">{{ message.sender.display_name }}</span>
                             <span>{{ message.created_at_human }}</span>
                         </div>
                         <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6">
@@ -167,7 +167,7 @@ watch(
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2">
-                                <p class="truncate font-semibold text-[var(--app-text)]">{{ member.name }}</p>
+                                <p class="truncate font-semibold text-[var(--app-text)]">{{ member.display_name }}</p>
                                 <el-tag
                                     size="small"
                                     :type="member.is_online ? 'success' : 'info'"
@@ -176,7 +176,9 @@ watch(
                                     {{ member.is_online ? "Online" : "Away" }}
                                 </el-tag>
                             </div>
-                            <p class="truncate text-sm text-[var(--app-text-soft)]">{{ member.email }}</p>
+                            <p class="truncate text-sm text-[var(--app-text-soft)]">
+                                {{ member.membership_role === "owner" ? "Room owner" : "Room member" }}
+                            </p>
                         </div>
                     </div>
                 </div>

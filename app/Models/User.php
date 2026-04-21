@@ -2,9 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
-use App\Enums\RoleType;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -24,9 +21,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'email',
-        'password',
-        'role',
+        'device_uuid',
+        'avatar_color',
         'last_seen_at',
     ];
 
@@ -36,8 +32,7 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'device_uuid',
     ];
 
     /**
@@ -46,7 +41,6 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
         'last_seen_at' => 'datetime',
     ];
 
@@ -54,6 +48,7 @@ class User extends Authenticatable
         'formatted_created_at',
         'initials',
         'is_online',
+        'display_name',
     ];
 
     public function getFormattedCreatedAtAttribute()
@@ -61,11 +56,9 @@ class User extends Authenticatable
         return $this->created_at->format(config('app.date_format'));
     }
 
-    public function role(): Attribute
+    public function getDisplayNameAttribute(): string
     {
-        return Attribute::make(
-            get: fn ($value) => RoleType::from($value)->name
-        );
+        return $this->name;
     }
 
     public function getInitialsAttribute(): string
@@ -80,6 +73,12 @@ class User extends Authenticatable
     public function getIsOnlineAttribute(): bool
     {
         return $this->last_seen_at?->gt(now()->subMinutes(2)) ?? false;
+    }
+
+    public static function generateAvatarColor(): string
+    {
+        return collect(['sunset', 'lagoon', 'forest', 'ember', 'violet', 'sand'])
+            ->random();
     }
 
     public function chatRooms(): BelongsToMany

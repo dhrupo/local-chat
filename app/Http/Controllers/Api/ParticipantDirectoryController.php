@@ -7,20 +7,17 @@ use App\Http\Resources\ChatMemberResource;
 use App\Models\User;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-class UserDirectoryController extends Controller
+class ParticipantDirectoryController extends Controller
 {
     public function __invoke(): AnonymousResourceCollection
     {
-        $users = User::query()
+        $participants = User::query()
             ->when(request('query'), function ($query, $search) {
-                $query->where(function ($nested) use ($search) {
-                    $nested->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                });
+                $query->where('name', 'like', "%{$search}%");
             })
             ->orderBy('name')
             ->get();
 
-        return ChatMemberResource::collection($users);
+        return ChatMemberResource::collection($participants);
     }
 }

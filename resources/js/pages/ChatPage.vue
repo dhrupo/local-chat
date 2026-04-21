@@ -72,10 +72,10 @@ const handleSendMessage = async (body) => {
     }
 };
 
-const logout = async () => {
-    await authStore.logout();
+const resetDevice = async () => {
+    await authStore.disconnect();
     chatStore.stopRealtime(currentUser.value?.id);
-    router.push({ name: "login" });
+    router.push({ name: "setup" });
 };
 
 onMounted(async () => {
@@ -100,7 +100,7 @@ onUnmounted(() => {
 
             <div class="flex items-center gap-3">
                 <el-tag type="success" effect="light">{{ chatStore.joinedRooms.length }} joined rooms</el-tag>
-                <el-button plain @click="logout">Logout</el-button>
+                <el-button plain @click="resetDevice">Reset Device</el-button>
             </div>
         </div>
 

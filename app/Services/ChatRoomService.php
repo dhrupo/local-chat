@@ -19,6 +19,10 @@ class ChatRoomService
                 'messages' => fn ($query) => $query->latest()->limit(20),
                 'messages.sender',
             ])
+            ->where(function ($query) use ($user) {
+                $query->whereHas('roomMembers', fn ($members) => $members->where('user_id', $user->id))
+                    ->orWhereDoesntHave('roomMembers');
+            })
             ->orderByDesc(DB::raw('COALESCE(last_message_at, created_at)'))
             ->orderBy('name')
             ->get();

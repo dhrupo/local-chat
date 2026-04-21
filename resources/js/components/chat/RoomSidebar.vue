@@ -45,8 +45,8 @@ defineEmits(["refresh", "select-room", "join-room", "open-create"]);
                     {{ user.initials }}
                 </div>
                 <div>
-                    <p class="font-semibold text-[var(--app-text)]">{{ user.name }}</p>
-                    <p class="text-sm text-[var(--app-text-soft)]">{{ user.email }}</p>
+                    <p class="font-semibold text-[var(--app-text)]">{{ user.display_name }}</p>
+                    <p class="text-sm text-[var(--app-text-soft)]">This device identity is local to the current browser.</p>
                 </div>
             </div>
         </div>

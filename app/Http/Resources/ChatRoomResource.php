@@ -39,7 +39,7 @@ class ChatRoomResource extends JsonResource
             'latest_message' => $latestMessage ? [
                 'id' => $latestMessage->id,
                 'body' => $latestMessage->body,
-                'sender_name' => $latestMessage->relationLoaded('sender') ? $latestMessage->sender?->name : null,
+                'sender_name' => $latestMessage->relationLoaded('sender') ? $latestMessage->sender?->display_name : null,
                 'created_at' => optional($latestMessage->created_at)->toIso8601String(),
             ] : null,
             'members' => ChatMemberResource::collection($this->whenLoaded('members')),

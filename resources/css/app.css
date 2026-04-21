@@ -1,0 +1,83 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap");
+@import "element-plus/dist/index.css";
+@import "tailwindcss";
+
+:root {
+    --app-bg: #f4efe6;
+    --app-surface: rgba(255, 252, 247, 0.92);
+    --app-surface-strong: #fffdf8;
+    --app-border: rgba(71, 53, 34, 0.12);
+    --app-border-strong: rgba(71, 53, 34, 0.22);
+    --app-text: #2d2418;
+    --app-text-soft: #6e6253;
+    --app-accent: #c26137;
+    --app-accent-deep: #924425;
+    --app-accent-soft: rgba(194, 97, 55, 0.14);
+    --app-success: #2e7d5a;
+    --app-shadow: 0 24px 60px rgba(74, 54, 33, 0.12);
+    color: var(--app-text);
+    background:
+        radial-gradient(circle at top left, rgba(194, 97, 55, 0.18), transparent 24%),
+        radial-gradient(circle at right 20%, rgba(95, 130, 111, 0.18), transparent 25%),
+        linear-gradient(180deg, #f7f0e7 0%, #efe7da 100%);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: "DM Sans", sans-serif;
+    color: var(--app-text);
+    background: var(--app-bg);
+}
+
+.app-shell {
+    min-height: 100vh;
+}
+
+.app-card {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    box-shadow: var(--app-shadow);
+    backdrop-filter: blur(20px);
+}
+
+.app-panel {
+    background: var(--app-surface-strong);
+    border: 1px solid var(--app-border);
+    box-shadow: 0 12px 30px rgba(74, 54, 33, 0.07);
+}
+
+.brand-font {
+    font-family: "Space Grotesk", sans-serif;
+}
+
+.room-scroll,
+.message-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(194, 97, 55, 0.35) transparent;
+}
+
+.room-scroll::-webkit-scrollbar,
+.message-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.room-scroll::-webkit-scrollbar-thumb,
+.message-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(194, 97, 55, 0.26);
+}
+
+.message-bubble-self .el-card__body,
+.message-bubble-other .el-card__body {
+    padding: 0.85rem 1rem;
+}

@@ -4,13 +4,16 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import RoomSidebar from "../components/chat/RoomSidebar.vue";
 import ChatWindow from "../components/chat/ChatWindow.vue";
+import CallOverlay from "../components/chat/CallOverlay.vue";
 import CreateRoomDialog from "../components/chat/CreateRoomDialog.vue";
 import { useAuthStore } from "../stores/auth";
 import { useChatStore } from "../stores/chat";
+import { useCallStore } from "../stores/call";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
+const callStore = useCallStore();
 const createDialogOpen = ref(false);
 
 const currentUser = computed(() => authStore.user);
@@ -81,19 +84,57 @@ const handleUploadFile = async (file) => {
     }
 };
 
+const handleStartCall = async ({ participant, mode }) => {
+    try {
+        await callStore.startCall(participant, mode, chatStore.activeRoomId);
+        ElMessage.success(`${mode === "video" ? "Video" : "Voice"} call started.`);
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || "Unable to start the call.");
+    }
+};
+
+const handleAnswerCall = async () => {
+    try {
+        await callStore.answerIncomingCall();
+        ElMessage.success("Call connected.");
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || "Unable to answer the call.");
+    }
+};
+
+const handleRejectCall = async () => {
+    try {
+        await callStore.rejectIncomingCall();
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || "Unable to reject the call.");
+    }
+};
+
+const handleEndCall = async () => {
+    try {
+        await callStore.endCall();
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || "Unable to end the call.");
+    }
+};
+
 const resetDevice = async () => {
+    await callStore.endCall().catch(() => {});
     await authStore.disconnect();
     chatStore.stopRealtime(currentUser.value?.id);
+    callStore.stopRealtime();
     router.push({ name: "setup" });
 };
 
 onMounted(async () => {
     await chatStore.hydrate();
     chatStore.startRealtime(currentUser.value?.id);
+    callStore.startRealtime(currentUser.value?.id);
 });
 
 onUnmounted(() => {
     chatStore.stopRealtime(currentUser.value?.id);
+    callStore.stopRealtime();
 });
 </script>
 
@@ -134,8 +175,20 @@ onUnmounted(() => {
                 @send-message="handleSendMessage"
                 @leave-room="handleLeaveRoom"
                 @upload-file="handleUploadFile"
+                @start-call="handleStartCall"
             />
         </div>
+
+        <CallOverlay
+            :incoming-call="callStore.incomingCall"
+            :active-call="callStore.activeCall"
+            :local-stream="callStore.localStream"
+            :remote-stream="callStore.remoteStream"
+            :busy="callStore.initializing"
+            @answer="handleAnswerCall"
+            @reject="handleRejectCall"
+            @end="handleEndCall"
+        />
 
         <CreateRoomDialog
             v-model="createDialogOpen"

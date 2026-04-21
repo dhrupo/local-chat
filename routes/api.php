@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CallSignalController;
 use App\Http\Controllers\Api\ChatMessageController;
 use App\Http\Controllers\Api\ChatRoomController;
 use App\Http\Controllers\Api\ChatRoomMemberController;
@@ -13,6 +14,7 @@ Route::middleware(['auth:sanctum', 'last.seen'])->group(function () {
     Route::get('/me', MeController::class);
     Route::get('/participants', ParticipantDirectoryController::class);
     Route::post('/presence/ping', PresenceController::class);
+    Route::post('/calls/signal', CallSignalController::class);
 
     Route::get('/chat/rooms', [ChatRoomController::class, 'index']);
     Route::post('/chat/rooms', [ChatRoomController::class, 'store']);

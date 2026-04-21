@@ -1,6 +1,12 @@
 <script setup>
 import { computed, nextTick, ref, watch } from "vue";
-import { ChatDotRound, Paperclip, SwitchButton } from "@element-plus/icons-vue";
+import {
+    ChatDotRound,
+    Paperclip,
+    SwitchButton,
+    PhoneFilled,
+    VideoCameraFilled,
+} from "@element-plus/icons-vue";
 
 const props = defineProps({
     currentUser: {
@@ -25,7 +31,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["send-message", "leave-room", "upload-file"]);
+const emit = defineEmits(["send-message", "leave-room", "upload-file", "start-call"]);
 
 const draft = ref("");
 const messageContainer = ref(null);
@@ -238,6 +244,24 @@ watch(
                             <p class="truncate text-sm text-[var(--app-text-soft)]">
                                 {{ member.membership_role === "owner" ? "Room owner" : "Room member" }}
                             </p>
+                        </div>
+                        <div
+                            v-if="room.joined && member.id !== currentUser.id"
+                            class="flex items-center gap-2"
+                        >
+                            <el-button
+                                circle
+                                plain
+                                :icon="PhoneFilled"
+                                @click="$emit('start-call', { participant: member, mode: 'voice' })"
+                            />
+                            <el-button
+                                circle
+                                type="primary"
+                                plain
+                                :icon="VideoCameraFilled"
+                                @click="$emit('start-call', { participant: member, mode: 'video' })"
+                            />
                         </div>
                     </div>
                 </div>

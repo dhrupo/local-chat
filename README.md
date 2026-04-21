@@ -7,8 +7,10 @@ Current scope:
 - device-based onboarding with `display_name + device_uuid`
 - group rooms
 - realtime text messaging over WebSockets
+- room file sharing
 - room membership and unread counts
 - room presence on the local network
+- direct `1:1` voice/video signaling over WebRTC
 
 The app uses:
 
@@ -111,6 +113,10 @@ Build production assets:
 npm run build
 ```
 
-## Current Next Step
+## Call Scope
 
-The next logical feature is room file sharing, followed by `1:1 voice/video signaling` on top of the existing realtime and device presence layer.
+Voice/video is currently implemented as direct browser-to-browser `1:1` WebRTC signaling over the existing LAN server.
+
+- best suited for devices on the same Wi-Fi
+- no internet login, TURN, or SFU layer
+- group voice/video is intentionally out of scope right now

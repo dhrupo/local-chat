@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,5 +24,27 @@ class DeviceSessionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.display_name', 'Hallway Tablet')
             ->assertJsonPath('data.avatar_color', 'lagoon');
+    }
+
+    public function test_device_can_send_call_signal(): void
+    {
+        $caller = User::factory()->create();
+        $recipient = User::factory()->create();
+
+        $this->actingAs($caller);
+
+        $this->postJson('/api/calls/signal', [
+            'to_participant_id' => $recipient->id,
+            'signal_type' => 'offer',
+            'payload' => [
+                'description' => [
+                    'type' => 'offer',
+                    'sdp' => 'v=0',
+                ],
+                'mode' => 'video',
+            ],
+        ])->assertOk()->assertJson([
+            'ok' => true,
+        ]);
     }
 }

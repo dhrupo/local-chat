@@ -13,7 +13,16 @@ class ChatMessage extends Model
     protected $fillable = [
         'room_id',
         'user_id',
+        'type',
         'body',
+        'file_name',
+        'file_path',
+        'file_mime_type',
+        'file_size',
+    ];
+
+    protected $casts = [
+        'file_size' => 'integer',
     ];
 
     public function room(): BelongsTo

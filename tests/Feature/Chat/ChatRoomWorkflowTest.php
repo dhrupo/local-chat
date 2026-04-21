@@ -4,6 +4,8 @@ namespace Tests\Feature\Chat;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ChatRoomWorkflowTest extends TestCase
@@ -89,5 +91,38 @@ class ChatRoomWorkflowTest extends TestCase
         $this->getJson('/api/chat/rooms')
             ->assertOk()
             ->assertJsonPath('data.0.unread_count', 0);
+    }
+
+    public function test_member_can_upload_and_download_room_file(): void
+    {
+        Storage::fake('local');
+
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+
+        $this->actingAs($owner);
+
+        $roomId = $this->postJson('/api/chat/rooms', [
+            'name' => 'Assets',
+            'member_ids' => [$member->id],
+        ])->json('data.id');
+
+        $uploadResponse = $this->post("/api/chat/rooms/{$roomId}/files", [
+            'file' => UploadedFile::fake()->create('brief.pdf', 256, 'application/pdf'),
+            'body' => 'Please review the attached brief',
+        ]);
+
+        $uploadResponse->assertCreated();
+
+        $messageId = $uploadResponse->json('data.id');
+
+        $this->assertDatabaseHas('chat_messages', [
+            'id' => $messageId,
+            'room_id' => $roomId,
+            'type' => 'file',
+            'file_name' => 'brief.pdf',
+        ]);
+
+        $this->get($uploadResponse->json('data.file.download_url'))->assertOk();
     }
 }

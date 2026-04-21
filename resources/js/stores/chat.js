@@ -14,6 +14,7 @@ export const useChatStore = defineStore("chat", {
         loadingRooms: false,
         loadingMessages: false,
         sendingMessage: false,
+        uploadingFile: false,
     }),
     getters: {
         joinedRooms(state) {
@@ -176,6 +177,38 @@ export const useChatStore = defineStore("chat", {
                 await Promise.all([this.loadRooms(), this.markAsRead(roomId, data.data.id)]);
             } finally {
                 this.sendingMessage = false;
+            }
+        },
+        async uploadFile(roomId, file, body = "") {
+            if (!file) {
+                return;
+            }
+
+            this.uploadingFile = true;
+
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("body", body);
+
+                const { data } = await window.axios.post(`/api/chat/rooms/${roomId}/files`, formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+
+                const current = this.messagesByRoom[roomId] || [];
+
+                if (!current.some((item) => item.id === data.data.id)) {
+                    this.messagesByRoom = {
+                        ...this.messagesByRoom,
+                        [roomId]: [...current, data.data],
+                    };
+                }
+
+                await Promise.all([this.loadRooms(), this.markAsRead(roomId, data.data.id)]);
+            } finally {
+                this.uploadingFile = false;
             }
         },
         async markAsRead(roomId, messageId) {

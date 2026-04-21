@@ -72,6 +72,15 @@ const handleSendMessage = async (body) => {
     }
 };
 
+const handleUploadFile = async (file) => {
+    try {
+        await chatStore.uploadFile(chatStore.activeRoomId, file);
+        ElMessage.success("File shared.");
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || "File could not be shared.");
+    }
+};
+
 const resetDevice = async () => {
     await authStore.disconnect();
     chatStore.stopRealtime(currentUser.value?.id);
@@ -120,10 +129,11 @@ onUnmounted(() => {
                 :current-user="currentUser"
                 :room="activeRoom"
                 :messages="chatStore.activeMessages"
-                :sending="chatStore.sendingMessage"
+                :sending="chatStore.sendingMessage || chatStore.uploadingFile"
                 :loading="chatStore.loadingMessages"
                 @send-message="handleSendMessage"
                 @leave-room="handleLeaveRoom"
+                @upload-file="handleUploadFile"
             />
         </div>
 

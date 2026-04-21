@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from "vue";
-import { ChatDotRound, SwitchButton } from "@element-plus/icons-vue";
+import { ChatDotRound, Paperclip, SwitchButton } from "@element-plus/icons-vue";
 
 const props = defineProps({
     currentUser: {
@@ -25,10 +25,11 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["send-message", "leave-room"]);
+const emit = defineEmits(["send-message", "leave-room", "upload-file"]);
 
 const draft = ref("");
 const messageContainer = ref(null);
+const fileInput = ref(null);
 
 const onlineMembers = computed(() =>
     (props.room?.members || []).filter((member) => member.is_online)
@@ -41,6 +42,32 @@ const submit = () => {
 
     emit("send-message", draft.value);
     draft.value = "";
+};
+
+const chooseFile = () => {
+    fileInput.value?.click();
+};
+
+const onFileChange = (event) => {
+    const [file] = event.target.files || [];
+
+    if (file) {
+        emit("upload-file", file);
+    }
+
+    event.target.value = "";
+};
+
+const formatBytes = (bytes) => {
+    if (!bytes) {
+        return "0 B";
+    }
+
+    const units = ["B", "KB", "MB", "GB"];
+    const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / 1024 ** unitIndex;
+
+    return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 };
 
 watch(
@@ -102,9 +129,32 @@ watch(
                             <span class="font-semibold">{{ message.sender.display_name }}</span>
                             <span>{{ message.created_at_human }}</span>
                         </div>
-                        <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-6">
+                        <p
+                            v-if="message.body"
+                            class="mt-2 whitespace-pre-wrap break-words text-sm leading-6"
+                        >
                             {{ message.body }}
                         </p>
+                        <a
+                            v-if="message.type === 'file' && message.file"
+                            :href="message.file.download_url"
+                            class="mt-3 flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-sm no-underline transition"
+                            :class="
+                                message.sender.id === currentUser.id
+                                    ? 'border-white/20 bg-black/10 text-white hover:bg-black/15'
+                                    : 'border-[var(--app-border)] bg-[var(--app-accent-soft)] text-[var(--app-text)] hover:bg-[var(--app-accent-soft)]/80'
+                            "
+                        >
+                            <div class="min-w-0">
+                                <p class="truncate font-semibold">{{ message.file.name }}</p>
+                                <p class="mt-1 text-xs opacity-80">
+                                    {{ message.file.mime_type }} • {{ formatBytes(message.file.size) }}
+                                </p>
+                            </div>
+                            <span class="shrink-0 text-xs font-semibold uppercase tracking-[0.18em]">
+                                Download
+                            </span>
+                        </a>
                     </el-card>
                 </div>
 
@@ -126,6 +176,15 @@ watch(
 
             <footer v-if="room.joined" class="mt-4 border-t border-[var(--app-border)] pt-4">
                 <div class="flex flex-col gap-3 md:flex-row">
+                    <input
+                        ref="fileInput"
+                        type="file"
+                        class="hidden"
+                        @change="onFileChange"
+                    />
+                    <el-button plain :icon="Paperclip" class="md:self-end" @click="chooseFile">
+                        Share File
+                    </el-button>
                     <el-input
                         v-model="draft"
                         type="textarea"

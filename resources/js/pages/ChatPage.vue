@@ -74,17 +74,17 @@ const handleSendMessage = async (body) => {
 
 const logout = async () => {
     await authStore.logout();
-    chatStore.stopPolling();
+    chatStore.stopRealtime(currentUser.value?.id);
     router.push({ name: "login" });
 };
 
 onMounted(async () => {
     await chatStore.hydrate();
-    chatStore.startPolling();
+    chatStore.startRealtime(currentUser.value?.id);
 });
 
 onUnmounted(() => {
-    chatStore.stopPolling();
+    chatStore.stopRealtime(currentUser.value?.id);
 });
 </script>
 

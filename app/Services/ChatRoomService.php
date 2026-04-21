@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\RoomsUpdated;
 use App\Models\ChatRoom;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,7 +26,7 @@ class ChatRoomService
 
     public function create(User $creator, array $attributes): ChatRoom
     {
-        return DB::transaction(function () use ($creator, $attributes) {
+        $room = DB::transaction(function () use ($creator, $attributes) {
             $room = ChatRoom::create([
                 'name' => $attributes['name'],
                 'description' => $attributes['description'] ?? null,
@@ -51,6 +52,10 @@ class ChatRoomService
 
             return $room->load(['members', 'roomMembers', 'messages.sender']);
         });
+
+        $this->broadcastRoomUpdates($room->members->pluck('id')->all(), $room->id, 'created');
+
+        return $room;
     }
 
     public function join(ChatRoom $room, User $user): ChatRoom
@@ -63,11 +68,17 @@ class ChatRoomService
             ],
         ]);
 
-        return $room->fresh(['members', 'roomMembers', 'messages.sender']);
+        $room = $room->fresh(['members', 'roomMembers', 'messages.sender']);
+
+        $this->broadcastRoomUpdates($room->members->pluck('id')->all(), $room->id, 'joined');
+
+        return $room;
     }
 
     public function leave(ChatRoom $room, User $user): void
     {
+        $affectedUserIds = [];
+
         DB::transaction(function () use ($room, $user) {
             $membership = $room->roomMembers()->where('user_id', $user->id)->first();
 
@@ -91,6 +102,14 @@ class ChatRoomService
                 $remainingMembers->first()->update(['role' => 'owner']);
             }
         });
+
+        if ($room->exists) {
+            $affectedUserIds = $room->members()->pluck('users.id')->push($user->id)->unique()->all();
+        } else {
+            $affectedUserIds = [$user->id];
+        }
+
+        $this->broadcastRoomUpdates($affectedUserIds, $room->id, 'left');
     }
 
     public function ensureMember(ChatRoom $room, User $user): void
@@ -100,5 +119,12 @@ class ChatRoomService
             403,
             'You are not a member of this room.'
         );
+    }
+
+    protected function broadcastRoomUpdates(array $userIds, ?int $roomId, string $reason): void
+    {
+        foreach (array_unique($userIds) as $userId) {
+            broadcast(new RoomsUpdated((int) $userId, $roomId, $reason))->toOthers();
+        }
     }
 }

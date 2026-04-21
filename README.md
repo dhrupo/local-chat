@@ -1,66 +1,120 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Local Chat
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Local Chat is a Laravel 12 + Vue 3 application for text-based group chat on a single Wi-Fi network.
 
-## About Laravel
+Current scope:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- session-based login
+- group rooms
+- realtime text messaging over WebSockets
+- room membership and unread counts
+- live room updates and room presence
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The app uses:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- `Laravel 12`
+- `Vue 3`
+- `Tailwind CSS`
+- `Element Plus`
+- `MySQL`
+- `Laravel Reverb`
+- `Laravel Echo`
 
-## Learning Laravel
+## Demo Users
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+After seeding, these demo accounts are available:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- `admin@localchat.test`
+- `aisha@localchat.test`
+- `nafis@localchat.test`
+- `tania@localchat.test`
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+All seeded demo users use the password:
 
-## Laravel Sponsors
+```text
+password
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+## Local Setup
 
-### Premium Partners
+1. Install PHP dependencies:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+```bash
+composer install
+```
 
-## Contributing
+2. Install frontend dependencies:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+npm install
+```
 
-## Code of Conduct
+3. Create your environment file if needed:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## Security Vulnerabilities
+4. Configure MySQL credentials in `.env`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+5. Run migrations and seed the demo users:
 
-## License
+```bash
+php artisan migrate --seed
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Run The App
+
+You need three processes during development:
+
+1. Laravel app server:
+
+```bash
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+2. Vite dev server:
+
+```bash
+npm run dev -- --host
+```
+
+3. Reverb websocket server:
+
+```bash
+php artisan reverb:start --host=0.0.0.0 --port=8080
+```
+
+## LAN Access
+
+If you want phones or other laptops on the same Wi-Fi to connect:
+
+1. Find the host machine's LAN IP, for example `192.168.0.15`.
+2. Set `APP_URL` in `.env` to `http://192.168.0.15:8000`.
+3. Keep `REVERB_PORT=8080`.
+4. Rebuild frontend assets after changing the env values:
+
+```bash
+npm run build
+```
+
+The client websocket host follows the browser hostname by default, so opening the app via the LAN IP is usually enough for websocket connections as long as port `8080` is reachable from the same Wi-Fi network.
+
+## Test And Build
+
+Run the backend test suite:
+
+```bash
+php artisan test
+```
+
+Build production assets:
+
+```bash
+npm run build
+```
+
+## Current Next Step
+
+The text chat and group room foundation is in place. The next logical feature is `1:1 voice/video signaling` on top of the existing realtime and user presence layer.

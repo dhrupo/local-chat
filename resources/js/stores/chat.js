@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 
-let roomsIntervalId = null;
 let presenceIntervalId = null;
+let roomChannels = new Map();
+let activePresenceChannel = null;
 
 export const useChatStore = defineStore("chat", {
     state: () => ({
@@ -9,6 +10,7 @@ export const useChatStore = defineStore("chat", {
         activeRoomId: null,
         messagesByRoom: {},
         directory: [],
+        activePresenceMembers: [],
         loadingRooms: false,
         loadingMessages: false,
         sendingMessage: false,
@@ -21,7 +23,25 @@ export const useChatStore = defineStore("chat", {
             return state.rooms.filter((room) => !room.joined);
         },
         activeRoom(state) {
-            return state.rooms.find((room) => room.id === state.activeRoomId) || null;
+            const room = state.rooms.find((item) => item.id === state.activeRoomId) || null;
+
+            if (!room) {
+                return null;
+            }
+
+            if (!room.joined || !state.activePresenceMembers.length) {
+                return room;
+            }
+
+            const onlineIds = new Set(state.activePresenceMembers.map((member) => member.id));
+
+            return {
+                ...room,
+                members: room.members.map((member) => ({
+                    ...member,
+                    is_online: onlineIds.has(member.id),
+                })),
+            };
         },
         activeMessages(state) {
             return state.messagesByRoom[state.activeRoomId] || [];
@@ -38,6 +58,9 @@ export const useChatStore = defineStore("chat", {
             if (this.activeRoomId && this.activeRoom?.joined) {
                 await this.loadMessages(this.activeRoomId);
             }
+
+            this.syncRoomSubscriptions();
+            this.syncActivePresenceChannel();
         },
         async loadRooms() {
             this.loadingRooms = true;
@@ -49,6 +72,9 @@ export const useChatStore = defineStore("chat", {
                 if (this.activeRoomId && !this.rooms.some((room) => room.id === this.activeRoomId)) {
                     this.activeRoomId = this.joinedRooms[0]?.id || this.rooms[0]?.id || null;
                 }
+
+                this.syncRoomSubscriptions();
+                this.syncActivePresenceChannel();
             } finally {
                 this.loadingRooms = false;
             }
@@ -62,6 +88,7 @@ export const useChatStore = defineStore("chat", {
         },
         async selectRoom(roomId) {
             this.activeRoomId = roomId;
+            this.syncActivePresenceChannel();
 
             if (this.activeRoom?.joined) {
                 await this.loadMessages(roomId);
@@ -77,12 +104,15 @@ export const useChatStore = defineStore("chat", {
                 this.activeRoomId = newestJoinedRoom.id;
                 await this.loadMessages(newestJoinedRoom.id);
             }
+
+            this.syncActivePresenceChannel();
         },
         async joinRoom(roomId) {
             await window.axios.post(`/api/chat/rooms/${roomId}/join`);
             await this.loadRooms();
             this.activeRoomId = roomId;
             await this.loadMessages(roomId);
+            this.syncActivePresenceChannel();
         },
         async leaveRoom(roomId) {
             await window.axios.delete(`/api/chat/rooms/${roomId}/leave`);
@@ -96,6 +126,8 @@ export const useChatStore = defineStore("chat", {
             if (this.activeRoomId && this.activeRoom?.joined) {
                 await this.loadMessages(this.activeRoomId);
             }
+
+            this.syncActivePresenceChannel();
         },
         async loadMessages(roomId) {
             if (!roomId) {
@@ -133,10 +165,13 @@ export const useChatStore = defineStore("chat", {
                 });
 
                 const current = this.messagesByRoom[roomId] || [];
-                this.messagesByRoom = {
-                    ...this.messagesByRoom,
-                    [roomId]: [...current, data.data],
-                };
+
+                if (!current.some((item) => item.id === data.data.id)) {
+                    this.messagesByRoom = {
+                        ...this.messagesByRoom,
+                        [roomId]: [...current, data.data],
+                    };
+                }
 
                 await Promise.all([this.loadRooms(), this.markAsRead(roomId, data.data.id)]);
             } finally {
@@ -161,31 +196,119 @@ export const useChatStore = defineStore("chat", {
                     : room
             );
         },
-        startPolling() {
-            this.stopPolling();
+        startRealtime(userId) {
+            this.stopRealtime();
 
-            roomsIntervalId = window.setInterval(async () => {
-                await this.loadRooms();
+            if (userId) {
+                window.Echo.private(`user.${userId}`).listen(".chat.rooms.updated", async (event) => {
+                    await this.loadRooms();
 
-                if (this.activeRoomId && this.activeRoom?.joined) {
-                    await this.loadMessages(this.activeRoomId);
-                }
-            }, 5000);
+                    if (event.room_id && event.room_id === this.activeRoomId && this.activeRoom?.joined) {
+                        await this.loadMessages(this.activeRoomId);
+                    }
+                });
+            }
 
             presenceIntervalId = window.setInterval(async () => {
                 await window.axios.post("/api/presence/ping");
             }, 30000);
         },
-        stopPolling() {
-            if (roomsIntervalId) {
-                window.clearInterval(roomsIntervalId);
-                roomsIntervalId = null;
+        stopRealtime(userId = null) {
+            if (userId) {
+                window.Echo.leave(`user.${userId}`);
             }
+
+            for (const roomId of roomChannels.keys()) {
+                window.Echo.leave(`chat.room.${roomId}`);
+            }
+
+            roomChannels = new Map();
+            this.leaveActivePresenceChannel();
 
             if (presenceIntervalId) {
                 window.clearInterval(presenceIntervalId);
                 presenceIntervalId = null;
             }
+        },
+        syncRoomSubscriptions() {
+            const joinedRoomIds = new Set(this.joinedRooms.map((room) => room.id));
+
+            for (const roomId of roomChannels.keys()) {
+                if (!joinedRoomIds.has(roomId)) {
+                    window.Echo.leave(`private-chat.room.${roomId}`);
+                    roomChannels.delete(roomId);
+                }
+            }
+
+            for (const room of this.joinedRooms) {
+                if (roomChannels.has(room.id)) {
+                    continue;
+                }
+
+                const channel = window.Echo.private(`chat.room.${room.id}`).listen(
+                    ".chat.message.created",
+                    async ({ message, room_id: roomId }) => {
+                        const current = this.messagesByRoom[roomId] || [];
+
+                        if (!current.some((item) => item.id === message.id)) {
+                            this.messagesByRoom = {
+                                ...this.messagesByRoom,
+                                [roomId]: [...current, message],
+                            };
+                        }
+
+                        await this.loadRooms();
+
+                        if (roomId === this.activeRoomId) {
+                            await this.markAsRead(roomId, message.id);
+                        }
+                    }
+                );
+
+                roomChannels.set(room.id, channel);
+            }
+        },
+        syncActivePresenceChannel() {
+            if (!this.activeRoom?.joined) {
+                this.leaveActivePresenceChannel();
+                return;
+            }
+
+            if (activePresenceChannel?.roomId === this.activeRoomId) {
+                return;
+            }
+
+            this.leaveActivePresenceChannel();
+
+            const channel = window.Echo.join(`chat.presence.${this.activeRoomId}`)
+                .here((members) => {
+                    this.activePresenceMembers = members;
+                })
+                .joining((member) => {
+                    if (!this.activePresenceMembers.some((item) => item.id === member.id)) {
+                        this.activePresenceMembers = [...this.activePresenceMembers, member];
+                    }
+                })
+                .leaving((member) => {
+                    this.activePresenceMembers = this.activePresenceMembers.filter(
+                        (item) => item.id !== member.id
+                    );
+                });
+
+            activePresenceChannel = {
+                roomId: this.activeRoomId,
+                channel,
+            };
+        },
+        leaveActivePresenceChannel() {
+            if (!activePresenceChannel) {
+                this.activePresenceMembers = [];
+                return;
+            }
+
+            window.Echo.leave(`chat.presence.${activePresenceChannel.roomId}`);
+            activePresenceChannel = null;
+            this.activePresenceMembers = [];
         },
     },
 });

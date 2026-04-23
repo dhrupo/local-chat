@@ -1,8 +1,24 @@
 import { defineStore } from "pinia";
 
+const turnUrls = (import.meta.env.VITE_TURN_URLS || "")
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+
 const ICE_SERVERS = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        ...(turnUrls.length
+            ? [{
+                  urls: turnUrls,
+                  username: import.meta.env.VITE_TURN_USERNAME || undefined,
+                  credential: import.meta.env.VITE_TURN_CREDENTIAL || undefined,
+              }]
+            : []),
+    ],
 };
+
+export const hasTurnServer = () => turnUrls.length > 0;
 
 let participantChannelName = null;
 

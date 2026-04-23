@@ -22,6 +22,34 @@ The app uses:
 - `Laravel Reverb`
 - `Laravel Echo`
 
+## Easiest Local Run
+
+For one-machine hosting on your Wi-Fi, use the helper script:
+
+```bash
+./scripts/local-chat-start.sh
+```
+
+It detects your LAN IP, prepares `.env`, runs migrations, builds assets, starts Laravel, and starts Reverb. Other devices on the same Wi-Fi can open the printed `http://<your-lan-ip>:8000` URL.
+
+This is still a local HTTP URL. Text chat, rooms, files, realtime updates, and notifications can work there. Camera and microphone access on phones usually requires trusted HTTPS, so voice/video may need a trusted local certificate or a real trusted hostname.
+
+## Docker Run
+
+If Docker is easier for sharing the app with another machine:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+```text
+http://localhost:8000
+```
+
+From another device on the same Wi-Fi, replace `localhost` with the host machine's LAN IP. Docker exposes the app on port `8000`, Reverb on port `8080`, and MySQL on host port `3307`.
+
 ## Identity Model
 
 This app does not use internet accounts, registration, or passwords.
@@ -99,6 +127,40 @@ npm run build
 
 The client websocket host follows the browser hostname by default, so opening the app through the LAN IP is usually enough as long as port `8080` is reachable on the network.
 
+## HTTPS And Calls
+
+Modern browsers treat `localhost` as secure, but not plain LAN IPs like `http://192.168.0.15:8000`. On phones, microphone and camera permissions usually fail unless the page is opened from a trusted HTTPS origin.
+
+Practical options:
+
+- Use the app over HTTP for text chat, file sharing, rooms, and notifications.
+- Use a trusted local certificate and install/trust it on each device.
+- Use a trusted hostname/certificate if you later decide to provide a domain.
+
+Without trusted HTTPS, the app cannot force mobile browsers to allow camera or microphone access on a LAN IP.
+
+## Voice/Video Reliability
+
+Direct `1:1` WebRTC calls work best when both devices are on the same Wi-Fi and the browser allows media permissions.
+
+If calls need to work across stricter networks, configure a TURN server in `.env` before building assets:
+
+```env
+VITE_TURN_URLS=turn:your-turn-host:3478
+VITE_TURN_USERNAME=your-turn-user
+VITE_TURN_CREDENTIAL=your-turn-password
+```
+
+Multiple TURN URLs can be comma-separated. Rebuild after changing these values:
+
+```bash
+npm run build
+```
+
+## Installable App
+
+The app includes a basic web manifest, so browsers that support installation can add it to the home screen or app launcher. This is still the same local web app and uses the same LAN URL.
+
 ## Test And Build
 
 Run the backend test suite:
@@ -118,5 +180,6 @@ npm run build
 Voice/video is currently implemented as direct browser-to-browser `1:1` WebRTC signaling over the existing LAN server.
 
 - best suited for devices on the same Wi-Fi
-- no internet login, TURN, or SFU layer
+- optional TURN support through `VITE_TURN_*` environment variables
+- no internet login or SFU layer
 - group voice/video is intentionally out of scope right now

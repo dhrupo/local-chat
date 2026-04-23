@@ -1,0 +1,17 @@
+{
+    "name": "Local Chat",
+    "short_name": "Local Chat",
+    "description": "Realtime LAN chat for nearby devices.",
+    "start_url": "/chat",
+    "display": "standalone",
+    "background_color": "#f4efe6",
+    "theme_color": "#c26137",
+    "icons": [
+        {
+            "src": "/local-chat-icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

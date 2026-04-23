@@ -6,6 +6,7 @@ import RoomSidebar from "../components/chat/RoomSidebar.vue";
 import ChatWindow from "../components/chat/ChatWindow.vue";
 import CallOverlay from "../components/chat/CallOverlay.vue";
 import CreateRoomDialog from "../components/chat/CreateRoomDialog.vue";
+import RuntimeStatusPanel from "../components/chat/RuntimeStatusPanel.vue";
 import { useAuthStore } from "../stores/auth";
 import { useChatStore } from "../stores/chat";
 import { useCallStore } from "../stores/call";
@@ -149,21 +150,12 @@ onUnmounted(() => {
 
 <template>
     <main class="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
-        <div class="mb-4 flex flex-col gap-3 rounded-[28px] bg-white/45 px-5 py-4 backdrop-blur md:flex-row md:items-center md:justify-between">
-            <div>
-                <p class="brand-font text-2xl font-bold text-[var(--app-text)]">Network Status: Online</p>
-                <p class="text-sm text-[var(--app-text-soft)]">
-                    Keep this device on the same Wi-Fi network as everyone else.
-                </p>
-            </div>
-
-            <div class="flex items-center gap-3">
-                <el-tag type="success" effect="light">
-                    {{ chatStore.directChats.length }} direct chats
-                </el-tag>
-                <el-tag type="warning" effect="light">
-                    {{ chatStore.joinedRooms.length }} group rooms
-                </el-tag>
+        <div class="mb-4 rounded-[28px] bg-white/45 px-5 py-4 backdrop-blur">
+            <RuntimeStatusPanel
+                :direct-chat-count="chatStore.directChats.length"
+                :group-room-count="chatStore.joinedRooms.length"
+            />
+            <div class="mt-3 flex justify-end">
                 <el-button plain @click="resetDevice">Reset Device</el-button>
             </div>
         </div>

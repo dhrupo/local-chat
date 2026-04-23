@@ -35,6 +35,15 @@ window.Echo = new Echo({
     enabledTransports: ["ws", "wss"],
 });
 
+window.LocalChatRealtimeState = "connecting";
+
+window.Echo.connector?.pusher?.connection?.bind("state_change", ({ current }) => {
+    window.LocalChatRealtimeState = current;
+    window.dispatchEvent(new CustomEvent("local-chat:realtime-state", {
+        detail: { state: current },
+    }));
+});
+
 window.axios.interceptors.request.use((config) => {
     const socketId = window.Echo?.socketId?.();
 

@@ -44,6 +44,16 @@ const onlineMembers = computed(() =>
     (props.room?.members || []).filter((member) => member.is_online)
 );
 
+const firstUnreadMessageId = computed(() => {
+    const unreadCount = props.room?.unread_count || 0;
+
+    if (!unreadCount || unreadCount > props.messages.length) {
+        return null;
+    }
+
+    return props.messages[props.messages.length - unreadCount]?.id || null;
+});
+
 const roomDescription = computed(() => {
     if (!props.room) {
         return "";
@@ -141,48 +151,67 @@ watch(
                 <div
                     v-for="message in messages"
                     :key="message.id"
-                    class="flex"
-                    :class="message.sender.id === currentUser.id ? 'justify-end' : 'justify-start'"
+                    class="space-y-2"
                 >
-                    <el-card
-                        class="max-w-[85%] rounded-[24px] border-0"
-                        :class="
-                            message.sender.id === currentUser.id
-                                ? 'message-bubble-self bg-[var(--app-accent)] text-white'
-                                : 'message-bubble-other bg-white text-[var(--app-text)]'
-                        "
+                    <div
+                        v-if="message.id === firstUnreadMessageId"
+                        class="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--app-accent-deep)]"
                     >
-                        <div class="flex items-center gap-3 text-xs opacity-80">
-                            <span class="font-semibold">{{ message.sender.display_name }}</span>
-                            <span>{{ message.created_at_human }}</span>
-                        </div>
-                        <p
-                            v-if="message.body"
-                            class="mt-2 whitespace-pre-wrap break-words text-sm leading-6"
-                        >
-                            {{ message.body }}
-                        </p>
-                        <a
-                            v-if="message.type === 'file' && message.file"
-                            :href="message.file.download_url"
-                            class="mt-3 flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-sm no-underline transition"
+                        <span class="h-px flex-1 bg-[var(--app-border-strong)]"></span>
+                        New messages
+                        <span class="h-px flex-1 bg-[var(--app-border-strong)]"></span>
+                    </div>
+
+                    <div
+                        class="flex"
+                        :class="message.sender.id === currentUser.id ? 'justify-end' : 'justify-start'"
+                    >
+                        <el-card
+                            class="max-w-[85%] rounded-[24px] border-0"
                             :class="
                                 message.sender.id === currentUser.id
-                                    ? 'border-white/20 bg-black/10 text-white hover:bg-black/15'
-                                    : 'border-[var(--app-border)] bg-[var(--app-accent-soft)] text-[var(--app-text)] hover:bg-[var(--app-accent-soft)]/80'
+                                    ? 'message-bubble-self bg-[var(--app-accent)] text-white'
+                                    : 'message-bubble-other bg-white text-[var(--app-text)]'
                             "
                         >
-                            <div class="min-w-0">
-                                <p class="truncate font-semibold">{{ message.file.name }}</p>
-                                <p class="mt-1 text-xs opacity-80">
-                                    {{ message.file.mime_type }} • {{ formatBytes(message.file.size) }}
-                                </p>
+                            <div class="flex items-center gap-3 text-xs opacity-80">
+                                <span class="font-semibold">{{ message.sender.display_name }}</span>
+                                <span>{{ message.created_at_human }}</span>
                             </div>
-                            <span class="shrink-0 text-xs font-semibold uppercase tracking-[0.18em]">
-                                Download
-                            </span>
-                        </a>
-                    </el-card>
+                            <p
+                                v-if="message.body"
+                                class="mt-2 whitespace-pre-wrap break-words text-sm leading-6"
+                            >
+                                {{ message.body }}
+                            </p>
+                            <a
+                                v-if="message.type === 'file' && message.file"
+                                :href="message.file.download_url"
+                                class="mt-3 flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-sm no-underline transition"
+                                :class="
+                                    message.sender.id === currentUser.id
+                                        ? 'border-white/20 bg-black/10 text-white hover:bg-black/15'
+                                        : 'border-[var(--app-border)] bg-[var(--app-accent-soft)] text-[var(--app-text)] hover:bg-[var(--app-accent-soft)]/80'
+                                "
+                            >
+                                <div class="min-w-0">
+                                    <p class="truncate font-semibold">{{ message.file.name }}</p>
+                                    <p class="mt-1 text-xs opacity-80">
+                                        {{ message.file.mime_type }} • {{ formatBytes(message.file.size) }}
+                                    </p>
+                                </div>
+                                <span class="shrink-0 text-xs font-semibold uppercase tracking-[0.18em]">
+                                    Download
+                                </span>
+                            </a>
+                            <p
+                                v-if="message.sender.id === currentUser.id"
+                                class="mt-2 text-right text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70"
+                            >
+                                Sent
+                            </p>
+                        </el-card>
+                    </div>
                 </div>
 
                 <div

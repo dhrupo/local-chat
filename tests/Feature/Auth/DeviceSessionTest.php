@@ -26,6 +26,27 @@ class DeviceSessionTest extends TestCase
             ->assertJsonPath('data.avatar_color', 'lagoon');
     }
 
+    public function test_device_cannot_use_a_display_name_taken_by_another_device(): void
+    {
+        User::factory()->create([
+            'name' => 'Hallway Tablet',
+            'device_uuid' => '11111111-1111-4111-8111-111111111111',
+        ]);
+
+        $this->get('/sanctum/csrf-cookie');
+
+        $this->postJson('/session/device', [
+            'device_uuid' => '22222222-2222-4222-8222-222222222222',
+            'display_name' => 'Hallway Tablet',
+            'avatar_color' => 'lagoon',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['display_name'])
+            ->assertJsonPath(
+                'errors.display_name.0',
+                'This display name is already taken. Please choose a new one.'
+            );
+    }
+
     public function test_device_can_send_call_signal(): void
     {
         $caller = User::factory()->create();

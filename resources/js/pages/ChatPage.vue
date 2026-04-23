@@ -20,7 +20,7 @@ const currentUser = computed(() => authStore.user);
 const activeRoom = computed(() => chatStore.activeRoom);
 
 const refreshRooms = async () => {
-    await chatStore.loadRooms();
+    await Promise.all([chatStore.loadRooms(), chatStore.loadDirectory()]);
 
     if (chatStore.activeRoomId && chatStore.activeRoom?.joined) {
         await chatStore.loadMessages(chatStore.activeRoomId);
@@ -29,6 +29,7 @@ const refreshRooms = async () => {
 
 const handleCreateRoom = async (payload) => {
     try {
+        await authStore.bootstrap();
         await chatStore.createRoom(payload);
         createDialogOpen.value = false;
         ElMessage.success("Room created.");
@@ -43,6 +44,14 @@ const handleJoinRoom = async (roomId) => {
         ElMessage.success("You joined the room.");
     } catch (error) {
         ElMessage.error(error.response?.data?.message || "Unable to join room.");
+    }
+};
+
+const handleOpenDirectChat = async (participantId) => {
+    try {
+        await chatStore.openDirectChat(participantId);
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || "Unable to open direct chat.");
     }
 };
 
@@ -89,7 +98,7 @@ const handleStartCall = async ({ participant, mode }) => {
         await callStore.startCall(participant, mode, chatStore.activeRoomId);
         ElMessage.success(`${mode === "video" ? "Video" : "Voice"} call started.`);
     } catch (error) {
-        ElMessage.error(error.response?.data?.message || "Unable to start the call.");
+        ElMessage.error(error.response?.data?.message || error.message || "Unable to start the call.");
     }
 };
 
@@ -98,7 +107,7 @@ const handleAnswerCall = async () => {
         await callStore.answerIncomingCall();
         ElMessage.success("Call connected.");
     } catch (error) {
-        ElMessage.error(error.response?.data?.message || "Unable to answer the call.");
+        ElMessage.error(error.response?.data?.message || error.message || "Unable to answer the call.");
     }
 };
 
@@ -106,7 +115,7 @@ const handleRejectCall = async () => {
     try {
         await callStore.rejectIncomingCall();
     } catch (error) {
-        ElMessage.error(error.response?.data?.message || "Unable to reject the call.");
+        ElMessage.error(error.response?.data?.message || error.message || "Unable to reject the call.");
     }
 };
 
@@ -114,7 +123,7 @@ const handleEndCall = async () => {
     try {
         await callStore.endCall();
     } catch (error) {
-        ElMessage.error(error.response?.data?.message || "Unable to end the call.");
+        ElMessage.error(error.response?.data?.message || error.message || "Unable to end the call.");
     }
 };
 
@@ -149,7 +158,12 @@ onUnmounted(() => {
             </div>
 
             <div class="flex items-center gap-3">
-                <el-tag type="success" effect="light">{{ chatStore.joinedRooms.length }} joined rooms</el-tag>
+                <el-tag type="success" effect="light">
+                    {{ chatStore.directChats.length }} direct chats
+                </el-tag>
+                <el-tag type="warning" effect="light">
+                    {{ chatStore.joinedRooms.length }} group rooms
+                </el-tag>
                 <el-button plain @click="resetDevice">Reset Device</el-button>
             </div>
         </div>
@@ -157,12 +171,15 @@ onUnmounted(() => {
         <div class="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
             <RoomSidebar
                 :user="currentUser"
+                :participants="chatStore.directory.filter((participant) => participant.id !== currentUser?.id)"
+                :direct-chats="chatStore.directChats"
                 :joined-rooms="chatStore.joinedRooms"
                 :discoverable-rooms="chatStore.discoverableRooms"
                 :active-room-id="chatStore.activeRoomId"
                 @refresh="refreshRooms"
                 @select-room="chatStore.selectRoom"
                 @join-room="handleJoinRoom"
+                @open-direct-chat="handleOpenDirectChat"
                 @open-create="createDialogOpen = true"
             />
 

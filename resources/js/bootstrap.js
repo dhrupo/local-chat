@@ -20,8 +20,10 @@ window.axios.defaults.headers.common.Accept = "application/json";
 
 const reverbScheme =
     import.meta.env.VITE_REVERB_SCHEME || window.location.protocol.replace(":", "");
-const reverbHost = window.location.hostname;
-const reverbPort = import.meta.env.VITE_REVERB_PORT ?? 8080;
+const reverbHost = import.meta.env.VITE_REVERB_HOST || window.location.hostname;
+const reverbPort = import.meta.env.VITE_REVERB_PORT
+    || window.location.port
+    || (reverbScheme === "https" ? 443 : 80);
 
 window.Echo = new Echo({
     broadcaster: "reverb",

@@ -11,13 +11,18 @@ const form = reactive({
     display_name: authStore.savedIdentity?.display_name || "",
 });
 
+const resolveDisplayNameError = (error) =>
+    error.response?.data?.errors?.display_name?.[0]
+    || error.response?.data?.message
+    || "Could not save your display name.";
+
 const submit = async () => {
     try {
         await authStore.connect(form.display_name);
         ElMessage.success("Device connected to the local chat server.");
         await router.push({ name: "chat" });
     } catch (error) {
-        ElMessage.error(error.response?.data?.message || "Could not save your display name.");
+        ElMessage.error(resolveDisplayNameError(error));
     }
 };
 </script>

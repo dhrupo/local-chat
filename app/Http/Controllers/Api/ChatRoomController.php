@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\StoreRoomRequest;
 use App\Http\Resources\ChatRoomResource;
 use App\Models\ChatRoom;
+use App\Models\User;
 use App\Services\ChatRoomService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -35,8 +36,19 @@ class ChatRoomController extends Controller
 
     public function show(ChatRoom $room): ChatRoomResource
     {
+        $this->chatRoomService->ensureMember($room, request()->user());
+
         $room->load(['members', 'roomMembers', 'messages.sender']);
 
         return new ChatRoomResource($room);
+    }
+
+    public function direct(User $participant): JsonResponse
+    {
+        $room = $this->chatRoomService->findOrCreateDirect(request()->user(), $participant);
+
+        return (new ChatRoomResource($room))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 }

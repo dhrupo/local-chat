@@ -7,6 +7,7 @@ import {
     PhoneFilled,
     VideoCameraFilled,
 } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 
 const props = defineProps({
     currentUser: {
@@ -33,6 +34,8 @@ const props = defineProps({
 
 const emit = defineEmits(["send-message", "leave-room", "upload-file", "start-call"]);
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
 const draft = ref("");
 const messageContainer = ref(null);
 const fileInput = ref(null);
@@ -40,6 +43,18 @@ const fileInput = ref(null);
 const onlineMembers = computed(() =>
     (props.room?.members || []).filter((member) => member.is_online)
 );
+
+const roomDescription = computed(() => {
+    if (!props.room) {
+        return "";
+    }
+
+    if (props.room.is_direct) {
+        return "Private 1:1 conversation on the same Wi-Fi network.";
+    }
+
+    return props.room.description || "Use this room for quick coordination on the same network.";
+});
 
 const submit = () => {
     if (!draft.value.trim()) {
@@ -58,6 +73,12 @@ const onFileChange = (event) => {
     const [file] = event.target.files || [];
 
     if (file) {
+        if (file.size > MAX_FILE_SIZE) {
+            ElMessage.error("Files must be 5 MB or smaller.");
+            event.target.value = "";
+            return;
+        }
+
         emit("upload-file", file);
     }
 
@@ -95,14 +116,14 @@ watch(
                 <div>
                     <p class="brand-font text-3xl font-bold tracking-tight text-[var(--app-text)]">{{ room.name }}</p>
                     <p class="mt-1 text-sm text-[var(--app-text-soft)]">
-                        {{ room.description || "Use this room for quick coordination on the same network." }}
+                        {{ roomDescription }}
                     </p>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <el-tag type="success" effect="light">{{ onlineMembers.length }} online</el-tag>
                     <el-button
-                        v-if="room.joined"
+                        v-if="room.joined && !room.is_direct"
                         :icon="SwitchButton"
                         plain
                         @click="$emit('leave-room', room.id)"
@@ -174,7 +195,11 @@ watch(
                         </el-icon>
                         <p class="mt-4 brand-font text-xl font-bold">No messages yet</p>
                         <p class="mt-2 text-sm text-[var(--app-text-soft)]">
-                            Start the conversation and everyone in this room will see it on the same Wi-Fi network.
+                            {{
+                                room.is_direct
+                                    ? "Start the conversation with this device on the same Wi-Fi network."
+                                    : "Start the conversation and everyone in this room will see it on the same Wi-Fi network."
+                            }}
                         </p>
                     </div>
                 </div>
@@ -189,7 +214,7 @@ watch(
                         @change="onFileChange"
                     />
                     <el-button plain :icon="Paperclip" class="md:self-end" @click="chooseFile">
-                        Share File
+                        Share File (5 MB)
                     </el-button>
                     <el-input
                         v-model="draft"

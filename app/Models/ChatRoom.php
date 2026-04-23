@@ -15,12 +15,15 @@ class ChatRoom extends Model
     protected $fillable = [
         'name',
         'description',
+        'is_direct',
+        'direct_key',
         'created_by',
         'last_message_at',
     ];
 
     protected $casts = [
         'last_message_at' => 'datetime',
+        'is_direct' => 'boolean',
     ];
 
     public function creator(): BelongsTo

@@ -125,4 +125,103 @@ class ChatRoomWorkflowTest extends TestCase
 
         $this->get($uploadResponse->json('data.file.download_url'))->assertOk();
     }
+
+    public function test_file_upload_must_be_five_megabytes_or_smaller(): void
+    {
+        Storage::fake('local');
+
+        $owner = User::factory()->create();
+
+        $this->actingAs($owner);
+
+        $roomId = $this->postJson('/api/chat/rooms', [
+            'name' => 'Small Files Only',
+        ])->json('data.id');
+
+        $this->post("/api/chat/rooms/{$roomId}/files", [
+            'file' => UploadedFile::fake()->create('too-large.pdf', 5121, 'application/pdf'),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertDatabaseMissing('chat_messages', [
+            'room_id' => $roomId,
+            'file_name' => 'too-large.pdf',
+        ]);
+    }
+
+    public function test_user_can_open_reusable_direct_chat_from_participant_list(): void
+    {
+        $owner = User::factory()->create(['name' => 'Dhrupo']);
+        $participant = User::factory()->create(['name' => 'Turna']);
+
+        $this->actingAs($owner);
+
+        $firstResponse = $this->postJson("/api/chat/direct/{$participant->id}")
+            ->assertCreated()
+            ->assertJsonPath('data.is_direct', true)
+            ->assertJsonPath('data.name', 'Turna');
+
+        $roomId = $firstResponse->json('data.id');
+
+        $this->assertDatabaseHas('chat_rooms', [
+            'id' => $roomId,
+            'is_direct' => true,
+            'direct_key' => 'direct:'.$owner->id.':'.$participant->id,
+        ]);
+
+        $this->assertDatabaseCount('chat_room_members', 2);
+
+        $this->postJson("/api/chat/direct/{$participant->id}")
+            ->assertCreated()
+            ->assertJsonPath('data.id', $roomId);
+
+        $this->assertDatabaseCount('chat_rooms', 1);
+    }
+
+    public function test_non_member_can_discover_group_room_immediately(): void
+    {
+        $owner = User::factory()->create();
+        $viewer = User::factory()->create();
+
+        $this->actingAs($owner);
+
+        $roomId = $this->postJson('/api/chat/rooms', [
+            'name' => 'Open Updates',
+            'description' => 'Visible across the network',
+        ])->json('data.id');
+
+        $this->actingAs($viewer);
+
+        $this->getJson('/api/chat/rooms')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $roomId,
+                'name' => 'Open Updates',
+                'joined' => false,
+                'is_direct' => false,
+            ]);
+    }
+
+    public function test_non_member_cannot_view_room_details_or_messages(): void
+    {
+        $owner = User::factory()->create();
+        $viewer = User::factory()->create();
+
+        $this->actingAs($owner);
+
+        $roomId = $this->postJson('/api/chat/rooms', [
+            'name' => 'Private Room Details',
+        ])->json('data.id');
+
+        $this->postJson("/api/chat/rooms/{$roomId}/messages", [
+            'body' => 'Members only',
+        ])->assertCreated();
+
+        $this->actingAs($viewer);
+
+        $this->getJson("/api/chat/rooms/{$roomId}")
+            ->assertForbidden();
+
+        $this->getJson("/api/chat/rooms/{$roomId}/messages")
+            ->assertForbidden();
+    }
 }

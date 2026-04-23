@@ -6,6 +6,14 @@ defineProps({
         type: Object,
         required: true,
     },
+    participants: {
+        type: Array,
+        default: () => [],
+    },
+    directChats: {
+        type: Array,
+        default: () => [],
+    },
     joinedRooms: {
         type: Array,
         default: () => [],
@@ -20,7 +28,7 @@ defineProps({
     },
 });
 
-defineEmits(["refresh", "select-room", "join-room", "open-create"]);
+defineEmits(["refresh", "select-room", "join-room", "open-create", "open-direct-chat"]);
 </script>
 
 <template>
@@ -52,6 +60,90 @@ defineEmits(["refresh", "select-room", "join-room", "open-create"]);
         </div>
 
         <div class="room-scroll flex-1 space-y-6 overflow-y-auto pr-1">
+            <section>
+                <div class="mb-3 flex items-center justify-between">
+                    <h2 class="brand-font text-sm font-bold uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
+                        Devices On Network
+                    </h2>
+                    <span class="text-xs text-[var(--app-text-soft)]">{{ participants.length }}</span>
+                </div>
+
+                <div class="space-y-3">
+                    <button
+                        v-for="participant in participants"
+                        :key="participant.id"
+                        class="w-full rounded-[24px] border border-[var(--app-border)] bg-white/80 p-4 text-left transition duration-200 hover:border-[var(--app-border-strong)] hover:bg-white"
+                        @click="$emit('open-direct-chat', participant.id)"
+                    >
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--app-accent-soft)] font-semibold text-[var(--app-accent-deep)]">
+                                {{ participant.initials }}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <p class="truncate font-semibold text-[var(--app-text)]">
+                                        {{ participant.display_name }}
+                                    </p>
+                                    <el-tag
+                                        size="small"
+                                        :type="participant.is_online ? 'success' : 'info'"
+                                        effect="light"
+                                    >
+                                        {{ participant.is_online ? "Online" : "Away" }}
+                                    </el-tag>
+                                </div>
+                                <p class="truncate text-sm text-[var(--app-text-soft)]">
+                                    {{ participant.is_online ? "Available on this Wi-Fi" : "Recently seen on this Wi-Fi" }}
+                                </p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <div
+                        v-if="!participants.length"
+                        class="rounded-[24px] border border-dashed border-[var(--app-border-strong)] bg-white/55 p-4 text-sm text-[var(--app-text-soft)]"
+                    >
+                        No other devices are visible on this Wi-Fi yet.
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="mb-3 flex items-center justify-between">
+                    <h2 class="brand-font text-sm font-bold uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
+                        Direct Chats
+                    </h2>
+                    <span class="text-xs text-[var(--app-text-soft)]">{{ directChats.length }}</span>
+                </div>
+
+                <div class="space-y-3">
+                    <button
+                        v-for="room in directChats"
+                        :key="room.id"
+                        class="w-full rounded-[24px] border p-4 text-left transition duration-200"
+                        :class="
+                            room.id === activeRoomId
+                                ? 'border-[var(--app-accent)] bg-[var(--app-accent-soft)] shadow-[0_10px_30px_rgba(194,97,55,0.16)]'
+                                : 'border-[var(--app-border)] bg-white/80 hover:border-[var(--app-border-strong)] hover:bg-white'
+                        "
+                        @click="$emit('select-room', room.id)"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="truncate font-semibold text-[var(--app-text)]">{{ room.name }}</p>
+                                <p class="mt-1 line-clamp-2 text-sm text-[var(--app-text-soft)]">
+                                    {{ room.latest_message?.body || "Private conversation" }}
+                                </p>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="text-xs text-[var(--app-text-soft)]">1:1</span>
+                                <el-badge v-if="room.unread_count" :value="room.unread_count" />
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </section>
+
             <section>
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="brand-font text-sm font-bold uppercase tracking-[0.16em] text-[var(--app-text-soft)]">

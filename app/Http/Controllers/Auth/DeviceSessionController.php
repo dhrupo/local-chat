@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Events\ParticipantsUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\DeviceSessionRequest;
 use App\Models\User;
@@ -26,6 +27,7 @@ class DeviceSessionController extends Controller
 
         Auth::login($user, false);
         $request->session()->regenerate();
+        broadcast(new ParticipantsUpdated())->toOthers();
 
         return response()->json([
             'user' => $user->fresh(),
@@ -34,6 +36,7 @@ class DeviceSessionController extends Controller
 
     public function destroy(): JsonResponse
     {
+        broadcast(new ParticipantsUpdated())->toOthers();
         Auth::guard('web')->logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();

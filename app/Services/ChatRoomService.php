@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\RoomCatalogUpdated;
 use App\Events\RoomsUpdated;
 use App\Models\ChatRoom;
 use App\Models\User;
@@ -10,6 +11,13 @@ use Illuminate\Support\Facades\DB;
 
 class ChatRoomService
 {
+    protected array $roomRelations = [
+        'members' => null,
+        'roomMembers',
+        'messages' => null,
+        'messages.sender',
+    ];
+
     public function listForUser(User $user): Collection
     {
         return ChatRoom::query()
@@ -20,8 +28,8 @@ class ChatRoomService
                 'messages.sender',
             ])
             ->where(function ($query) use ($user) {
-                $query->whereHas('roomMembers', fn ($members) => $members->where('user_id', $user->id))
-                    ->orWhereDoesntHave('roomMembers');
+                $query->where('is_direct', false)
+                    ->orWhereHas('roomMembers', fn ($members) => $members->where('user_id', $user->id));
             })
             ->orderByDesc(DB::raw('COALESCE(last_message_at, created_at)'))
             ->orderBy('name')
@@ -58,6 +66,62 @@ class ChatRoomService
         });
 
         $this->broadcastRoomUpdates($room->members->pluck('id')->all(), $room->id, 'created');
+        $this->broadcastRoomCatalogUpdate($room->id, 'created');
+
+        return $room;
+    }
+
+    public function findOrCreateDirect(User $initiator, User $participant): ChatRoom
+    {
+        abort_if($initiator->is($participant), 422, 'You cannot start a direct chat with this device.');
+
+        $directKey = $this->makeDirectKey($initiator->id, $participant->id);
+
+        $room = ChatRoom::query()
+            ->where('direct_key', $directKey)
+            ->with([
+                'members' => fn ($query) => $query->orderBy('name'),
+                'roomMembers',
+                'messages' => fn ($query) => $query->latest()->limit(20),
+                'messages.sender',
+            ])
+            ->first();
+
+        if ($room) {
+            return $room;
+        }
+
+        $room = DB::transaction(function () use ($initiator, $participant, $directKey) {
+            $room = ChatRoom::create([
+                'name' => $this->makeDirectRoomName($initiator, $participant),
+                'description' => null,
+                'is_direct' => true,
+                'direct_key' => $directKey,
+                'created_by' => $initiator->id,
+            ]);
+
+            $room->members()->sync([
+                $initiator->id => [
+                    'role' => 'owner',
+                    'joined_at' => now(),
+                    'last_read_message_id' => null,
+                ],
+                $participant->id => [
+                    'role' => 'member',
+                    'joined_at' => now(),
+                    'last_read_message_id' => null,
+                ],
+            ]);
+
+            return $room->load([
+                'members' => fn ($query) => $query->orderBy('name'),
+                'roomMembers',
+                'messages' => fn ($query) => $query->latest()->limit(20),
+                'messages.sender',
+            ]);
+        });
+
+        $this->broadcastRoomUpdates($room->members->pluck('id')->all(), $room->id, 'direct-created');
 
         return $room;
     }
@@ -75,6 +139,7 @@ class ChatRoomService
         $room = $room->fresh(['members', 'roomMembers', 'messages.sender']);
 
         $this->broadcastRoomUpdates($room->members->pluck('id')->all(), $room->id, 'joined');
+        $this->broadcastRoomCatalogUpdate($room->id, 'joined');
 
         return $room;
     }
@@ -114,6 +179,7 @@ class ChatRoomService
         }
 
         $this->broadcastRoomUpdates($affectedUserIds, $room->id, 'left');
+        $this->broadcastRoomCatalogUpdate($room->id, 'left');
     }
 
     public function ensureMember(ChatRoom $room, User $user): void
@@ -130,5 +196,24 @@ class ChatRoomService
         foreach (array_unique($userIds) as $userId) {
             broadcast(new RoomsUpdated((int) $userId, $roomId, $reason))->toOthers();
         }
+    }
+
+    protected function broadcastRoomCatalogUpdate(?int $roomId, string $reason): void
+    {
+        broadcast(new RoomCatalogUpdated($roomId, $reason))->toOthers();
+    }
+
+    protected function makeDirectKey(int $firstParticipantId, int $secondParticipantId): string
+    {
+        $ids = collect([$firstParticipantId, $secondParticipantId])->sort()->values();
+
+        return "direct:{$ids[0]}:{$ids[1]}";
+    }
+
+    protected function makeDirectRoomName(User $initiator, User $participant): string
+    {
+        return collect([$initiator->display_name, $participant->display_name])
+            ->sort()
+            ->implode(' / ');
     }
 }

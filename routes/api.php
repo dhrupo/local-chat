@@ -18,6 +18,7 @@ Route::middleware(['auth:sanctum', 'last.seen'])->group(function () {
 
     Route::get('/chat/rooms', [ChatRoomController::class, 'index']);
     Route::post('/chat/rooms', [ChatRoomController::class, 'store']);
+    Route::post('/chat/direct/{participant}', [ChatRoomController::class, 'direct']);
     Route::get('/chat/rooms/{room}', [ChatRoomController::class, 'show']);
     Route::post('/chat/rooms/{room}/join', [ChatRoomMemberController::class, 'store']);
     Route::delete('/chat/rooms/{room}/leave', [ChatRoomMemberController::class, 'destroy']);

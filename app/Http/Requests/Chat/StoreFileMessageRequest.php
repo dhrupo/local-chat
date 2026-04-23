@@ -14,8 +14,15 @@ class StoreFileMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'max:10240'],
+            'file' => ['required', 'file', 'max:5120'],
             'body' => ['nullable', 'string', 'max:500'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'file.max' => 'Files must be 5 MB or smaller.',
         ];
     }
 }

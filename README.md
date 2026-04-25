@@ -15,6 +15,7 @@ Current scope:
 - active room persistence across page reloads
 - room presence on the local network
 - mobile-friendly room creation and incoming call UI
+- mobile-first chat toolbar and small-screen room/message layout
 - runtime network/media status panel
 - direct `1:1` voice/video signaling over WebRTC
 
@@ -46,6 +47,49 @@ If the script cannot detect your LAN address, run it with an override:
 LAN_IP=192.168.0.15 ./scripts/local-chat-start.sh
 ```
 
+## Local HTTPS For Android Calls
+
+If you want Android voice/video calls without buying a real domain, use a locally trusted CA and the built-in HTTPS proxy setup:
+
+```bash
+./scripts/local-chat-https-setup.sh
+docker compose --profile https up --build -d
+```
+
+That setup:
+
+- generates a local CA with `mkcert`
+- creates a LAN certificate for your current IP and local hostname
+- copies the CA certificate into `certs/`
+- updates `.env` for `https://<your-lan-ip>:8443`
+- starts an HTTPS reverse proxy in front of Laravel and Reverb
+
+Then open:
+
+```text
+https://<your-lan-ip>:8443
+```
+
+Before testing calls on Android, you must install and trust `certs/local-chat-rootCA.crt` on each device.
+
+## Android Trust Steps
+
+These steps are required for browser-based microphone/camera access on Android when you do not have a real public certificate.
+
+1. Run `./scripts/local-chat-https-setup.sh` on the host machine.
+2. Copy `certs/local-chat-rootCA.crt` to the Android device.
+3. On Android, open:
+   `Settings -> Security -> Encryption & credentials -> Install a certificate -> CA certificate`
+4. Select `local-chat-rootCA.crt` and accept the warning.
+5. If Android asks for a screen lock before installing credentials, set one.
+6. Open `https://<your-lan-ip>:8443` in Chrome on the same Wi-Fi.
+
+Notes:
+
+- If the host LAN IP changes, rerun `./scripts/local-chat-https-setup.sh`.
+- Other people on the network need the CA certificate installed on their Android device too.
+- The generated CA is local to your machine. Do not reuse it as a public certificate.
+
 ## Docker Run
 
 If Docker is easier for sharing the app with another machine:
@@ -62,10 +106,25 @@ http://localhost:8000
 
 From another device on the same Wi-Fi, replace `localhost` with the host machine's LAN IP. Docker exposes the app on port `8000`, Reverb on port `8080`, and MySQL on host port `3307`.
 
+Important for phones and other devices:
+
+- do not use `localhost` or `127.0.0.1`
+- use the host machine LAN IP instead, for example `http://192.168.0.15:8000`
+- for HTTPS mode, use `https://192.168.0.15:8443`
+
+For HTTPS mode, use:
+
+```bash
+docker compose --profile https up --build -d
+```
+
+That adds an HTTPS proxy on host port `8443`.
+
 ## What Users Get
 
 - direct chats and group rooms in the same interface
 - unread markers and unread room counts
+- mobile-optimized setup/join flow and chat toolbar
 - incoming message toast alerts with notification sound
 - browser notifications for messages and incoming calls when permission is granted
 - file sharing capped at `5 MB` per upload
@@ -142,9 +201,10 @@ php artisan reverb:start --host=0.0.0.0 --port=8080
 If phones or other laptops on the same Wi-Fi should connect:
 
 1. Find the host machine's LAN IP, for example `192.168.0.15`.
-2. Set `APP_URL` in `.env` to `http://192.168.0.15:8000`.
-3. Keep `REVERB_PORT=8080`.
-4. Rebuild frontend assets after env changes:
+2. Open the app from other devices using that LAN IP, not `localhost` or `127.0.0.1`.
+3. Set `APP_URL` in `.env` to `http://192.168.0.15:8000`.
+4. Keep `REVERB_PORT=8080`.
+5. Rebuild frontend assets after env changes:
 
 ```bash
 npm run build
@@ -153,6 +213,12 @@ npm run build
 The client websocket host follows the browser hostname by default, so opening the app through the LAN IP is usually enough as long as port `8080` is reachable on the network.
 
 For local HTTPS experiments, make sure the page origin and websocket origin stay aligned. If you open the app on `https://192.168.x.x:8443`, the frontend should also be built with matching `VITE_REVERB_*` values.
+
+The helper HTTPS script handles those values for you:
+
+```bash
+./scripts/local-chat-https-setup.sh
+```
 
 ## HTTPS And Calls
 
@@ -165,6 +231,22 @@ Practical options:
 - Use a trusted hostname/certificate if you later decide to provide a domain.
 
 Without trusted HTTPS, the app cannot force mobile browsers to allow camera or microphone access on a LAN IP.
+
+### Full Local HTTPS Checklist
+
+1. Install `mkcert` on the host machine.
+   macOS:
+   `brew install mkcert nss`
+   `mkcert -install` may prompt for administrator access on the host machine.
+2. Run `./scripts/local-chat-https-setup.sh`
+3. Start the HTTPS stack:
+   `docker compose --profile https up --build -d`
+4. Install `certs/local-chat-rootCA.crt` on every Android device that should place calls.
+5. Open `https://<host-lan-ip>:8443`
+6. Verify the runtime status panel shows `Secure`.
+7. Test voice/video calling.
+
+If the runtime status still shows `Not secure`, the Android device has not trusted the generated CA correctly.
 
 ## Voice/Video Reliability
 
@@ -201,6 +283,7 @@ The app includes a basic web manifest, so browsers that support installation can
 - file uploads are limited to `5 MB` each
 - group voice/video calling is not implemented
 - calls are optimized for same-LAN use first
+- mobile browsers still require trusted HTTPS for reliable microphone/camera access
 - trusted HTTPS is still required for reliable mobile microphone/camera permissions
 - browser notifications and audio playback remain best-effort because browsers can block them until the user interacts with the page
 
@@ -216,6 +299,12 @@ Build production assets:
 
 ```bash
 npm run build
+```
+
+Validate Docker config:
+
+```bash
+docker compose config
 ```
 
 ## Call Scope

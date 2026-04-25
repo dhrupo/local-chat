@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Bell, Connection, Lock, Microphone, WarningFilled } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { hasTurnServer } from "../../stores/call";
+import { canUseMediaCalling, hasTurnServer } from "../../stores/call";
 
 const props = defineProps({
     directChatCount: {
@@ -24,6 +24,7 @@ const secureContextStatus = computed(() => (window.isSecureContext ? "Secure" : 
 const mediaStatus = computed(() => (
     navigator.mediaDevices?.getUserMedia ? "Available" : "Unavailable"
 ));
+const callStatus = computed(() => (canUseMediaCalling() ? "Ready" : "Limited"));
 const notificationStatus = computed(() => {
     if (notificationPermission.value === "granted") {
         return "Allowed";
@@ -148,6 +149,9 @@ onUnmounted(() => {
                 <el-icon class="mr-1"><Microphone /></el-icon>
                 Media: {{ mediaStatus }}
             </el-tag>
+            <el-tag :type="callStatus === 'Ready' ? 'success' : 'warning'" effect="light">
+                Calls: {{ callStatus }}
+            </el-tag>
             <el-tag :type="notificationPermission === 'granted' ? 'success' : 'warning'" effect="light">
                 <el-icon class="mr-1"><Bell /></el-icon>
                 Notifications: {{ notificationStatus }}
@@ -165,7 +169,7 @@ onUnmounted(() => {
         >
             <el-icon class="mr-1 align-middle"><WarningFilled /></el-icon>
             Chat works on HTTP, but camera and microphone usually require trusted HTTPS on phones.
-            Use a trusted cert/domain for frictionless calls, or manually trust your local certificate.
+            Calls are best on desktop localhost or trusted HTTPS. Use a trusted cert/domain, or manually trust your local certificate.
         </div>
 
         <div class="flex flex-wrap gap-2 lg:col-span-2">

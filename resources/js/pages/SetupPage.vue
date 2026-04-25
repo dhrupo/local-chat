@@ -28,9 +28,9 @@ const submit = async () => {
 </script>
 
 <template>
-    <main class="mx-auto flex min-h-screen max-w-7xl items-center px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+    <main class="mx-auto flex min-h-screen max-w-7xl items-center px-4 py-5 sm:px-6 sm:py-10 lg:px-8">
         <div class="grid w-full gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-            <section class="app-card rounded-[32px] p-6 sm:rounded-[36px] sm:p-8 md:p-10">
+            <section class="app-card order-2 rounded-[32px] p-6 sm:rounded-[36px] sm:p-8 md:p-10 lg:order-1">
                 <div class="max-w-2xl">
                     <p class="brand-font text-sm font-bold uppercase tracking-[0.3em] text-[var(--app-accent)]">
                         Local Network Messaging
@@ -65,7 +65,7 @@ const submit = async () => {
                 </div>
             </section>
 
-            <section class="app-card rounded-[32px] p-6 sm:rounded-[36px] sm:p-8 md:p-10">
+            <section class="app-card order-1 rounded-[32px] p-6 sm:rounded-[36px] sm:p-8 md:p-10 lg:order-2">
                 <p class="brand-font text-3xl font-bold">Set Your Display Name</p>
                 <p class="mt-2 text-sm text-[var(--app-text-soft)]">
                     This name is stored for this device and can be changed later.
@@ -97,7 +97,8 @@ const submit = async () => {
 
                 <div class="mt-6 rounded-[24px] border border-[var(--app-border)] bg-white/70 p-4 text-sm text-[var(--app-text-soft)]">
                     Best on mobile:
-                    Open the app from the same Wi-Fi as the host machine. Chat works on plain HTTP, while voice and video usually need trusted HTTPS on phones.
+                    Open the app from the same Wi-Fi as the host machine using its LAN IP, not `localhost`.
+                    Chat works on plain HTTP, while voice and video usually need trusted HTTPS on phones.
                 </div>
             </section>
         </div>

@@ -7,7 +7,7 @@ import RoomSidebar from "../components/chat/RoomSidebar.vue";
 import ChatWindow from "../components/chat/ChatWindow.vue";
 import { useAuthStore } from "../stores/auth";
 import { useChatStore } from "../stores/chat";
-import { useCallStore } from "../stores/call";
+import { canUseMediaCalling, mediaCallingUnavailableReason, useCallStore } from "../stores/call";
 
 const CallOverlay = defineAsyncComponent(() => import("../components/chat/CallOverlay.vue"));
 const CreateRoomDialog = defineAsyncComponent(() => import("../components/chat/CreateRoomDialog.vue"));
@@ -23,6 +23,12 @@ const isDesktop = ref(window.innerWidth >= 1280);
 
 const currentUser = computed(() => authStore.user);
 const activeRoom = computed(() => chatStore.activeRoom);
+const callSupport = computed(() => ({
+    voice: canUseMediaCalling(),
+    video: canUseMediaCalling(),
+    voiceReason: mediaCallingUnavailableReason("voice"),
+    videoReason: mediaCallingUnavailableReason("video"),
+}));
 
 const syncViewport = () => {
     isDesktop.value = window.innerWidth >= 1280;
@@ -172,22 +178,26 @@ onUnmounted(() => {
                 :direct-chat-count="chatStore.directChats.length"
                 :group-room-count="chatStore.joinedRooms.length"
             />
-            <div class="mt-3 flex justify-end">
-                <el-button plain @click="resetDevice">Reset Device</el-button>
+            <div class="mt-3 flex justify-end max-sm:justify-stretch">
+                <el-button plain class="max-sm:!ml-0 max-sm:w-full" @click="resetDevice">Reset Device</el-button>
             </div>
         </div>
 
-        <div class="mb-4 flex items-center gap-2 xl:hidden">
-            <el-button plain :icon="Menu" @click="sidebarOpen = true">
-                Rooms
-            </el-button>
-            <el-button plain :icon="RefreshRight" @click="refreshRooms" />
-            <el-button type="primary" plain :icon="Plus" @click="createDialogOpen = true">
-                New Group
-            </el-button>
+        <div class="mobile-chat-toolbar mb-4 xl:hidden">
+            <div class="grid grid-cols-3 gap-2">
+                <el-button plain :icon="Menu" class="!ml-0 w-full" @click="sidebarOpen = true">
+                    Rooms
+                </el-button>
+                <el-button plain :icon="RefreshRight" class="!ml-0 w-full" @click="refreshRooms">
+                    Refresh
+                </el-button>
+                <el-button type="primary" plain :icon="Plus" class="!ml-0 w-full" @click="createDialogOpen = true">
+                    New Group
+                </el-button>
+            </div>
             <div
                 v-if="activeRoom"
-                class="min-w-0 flex-1 rounded-2xl border border-[var(--app-border)] bg-white/70 px-3 py-2 text-right"
+                class="mt-2 min-w-0 rounded-[22px] border border-[var(--app-border)] bg-white/70 px-3 py-3 text-left"
             >
                 <p class="truncate text-sm font-semibold text-[var(--app-text)]">{{ activeRoom.name }}</p>
                 <p class="truncate text-xs text-[var(--app-text-soft)]">
@@ -219,6 +229,7 @@ onUnmounted(() => {
                 :messages="chatStore.activeMessages"
                 :sending="chatStore.sendingMessage || chatStore.uploadingFile"
                 :loading="chatStore.loadingMessages"
+                :call-support="callSupport"
                 @send-message="handleSendMessage"
                 @leave-room="handleLeaveRoom"
                 @upload-file="handleUploadFile"
@@ -255,6 +266,7 @@ onUnmounted(() => {
             :local-stream="callStore.localStream"
             :remote-stream="callStore.remoteStream"
             :busy="callStore.initializing"
+            :call-support="callSupport"
             @answer="handleAnswerCall"
             @reject="handleRejectCall"
             @end="handleEndCall"
@@ -276,5 +288,11 @@ onUnmounted(() => {
 
 :global(.mobile-room-drawer .el-drawer__body) {
     padding: 12px;
+}
+
+.mobile-chat-toolbar {
+    position: sticky;
+    top: 0.75rem;
+    z-index: 15;
 }
 </style>

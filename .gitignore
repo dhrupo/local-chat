@@ -4,6 +4,8 @@
 /public/storage
 /storage/*.key
 /vendor
+/certs/*
+!/certs/.gitignore
 .env
 .env.backup
 .env.production

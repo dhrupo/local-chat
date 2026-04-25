@@ -23,6 +23,15 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    callSupport: {
+        type: Object,
+        default: () => ({
+            voice: true,
+            video: true,
+            voiceReason: "",
+            videoReason: "",
+        }),
+    },
 });
 
 const emit = defineEmits(["answer", "reject", "end"]);
@@ -45,6 +54,12 @@ const callerName = computed(
 );
 
 const callModeLabel = computed(() => (isVideoCall.value ? "Video" : "Voice"));
+const incomingCallSupported = computed(() =>
+    isVideoCall.value ? props.callSupport.video : props.callSupport.voice
+);
+const incomingCallSupportReason = computed(() =>
+    isVideoCall.value ? props.callSupport.videoReason : props.callSupport.voiceReason
+);
 
 const playRingtoneTick = async () => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -241,6 +256,13 @@ onBeforeUnmount(() => {
                             </el-tag>
                         </div>
 
+                        <div
+                            v-if="incomingCall && !incomingCallSupported"
+                            class="mt-4 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                        >
+                            {{ incomingCallSupportReason }}
+                        </div>
+
                         <div class="mt-5 grid grid-cols-2 gap-3 sm:mt-8 sm:flex sm:flex-wrap">
                             <el-button
                                 v-if="incomingCall"
@@ -249,6 +271,7 @@ onBeforeUnmount(() => {
                                 size="large"
                                 :icon="PhoneFilled"
                                 :loading="busy"
+                                :disabled="!incomingCallSupported"
                                 @click="$emit('answer')"
                             >
                                 Answer

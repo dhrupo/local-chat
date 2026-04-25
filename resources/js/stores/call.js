@@ -19,6 +19,20 @@ const ICE_SERVERS = {
 };
 
 export const hasTurnServer = () => turnUrls.length > 0;
+export const isLocalNetworkSecureContext = () => window.isSecureContext || isLocalhost();
+export const canUseMediaCalling = () =>
+    !!navigator.mediaDevices?.getUserMedia && isLocalNetworkSecureContext();
+export const mediaCallingUnavailableReason = (mode = "video") => {
+    if (!isLocalNetworkSecureContext()) {
+        return `${mode === "video" ? "Video" : "Voice"} calling is available on desktop localhost or trusted HTTPS only. Plain LAN HTTP works for chat, but Android browsers usually block microphone and camera access there.`;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+        return `${mode === "video" ? "Video" : "Voice"} calling is not available in this browser.`;
+    }
+
+    return "";
+};
 
 let participantChannelName = null;
 
@@ -80,8 +94,8 @@ const serializeIceCandidate = (candidate) => ({
 });
 
 const normalizeMediaError = (error, mode) => {
-    if (!window.isSecureContext && !isLocalhost()) {
-        return `${mode === "video" ? "Video" : "Voice"} calling requires HTTPS or localhost. Plain LAN HTTP URLs cannot access the microphone/camera in most browsers.`;
+    if (!isLocalNetworkSecureContext()) {
+        return mediaCallingUnavailableReason(mode);
     }
 
     if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
@@ -307,10 +321,10 @@ export const useCallStore = defineStore("call", {
             });
         },
         async requestMedia(mode) {
-            if (!navigator.mediaDevices?.getUserMedia) {
-                throw new Error(
-                    `${mode === "video" ? "Video" : "Voice"} calling is not available in this browser or on this page.`
-                );
+            const unavailableReason = mediaCallingUnavailableReason(mode);
+
+            if (unavailableReason) {
+                throw new Error(unavailableReason);
             }
 
             try {

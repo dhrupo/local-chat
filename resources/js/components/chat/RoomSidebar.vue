@@ -211,3 +211,11 @@ defineEmits(["refresh", "select-room", "join-room", "open-create", "open-direct-
         </div>
     </aside>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+    .room-scroll {
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+}
+</style>

@@ -30,6 +30,15 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    callSupport: {
+        type: Object,
+        default: () => ({
+            voice: true,
+            video: true,
+            voiceReason: "",
+            videoReason: "",
+        }),
+    },
 });
 
 const emit = defineEmits(["send-message", "leave-room", "upload-file", "start-call"]);
@@ -121,11 +130,11 @@ watch(
 
 <template>
     <section v-if="room" class="grid h-full gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div class="app-card flex min-h-[70vh] flex-col rounded-[28px] p-3 sm:p-4 md:p-5">
+        <div class="app-card flex min-h-[70vh] min-w-0 flex-col rounded-[28px] p-3 sm:p-4 md:p-5">
             <header class="mb-4 flex flex-col gap-4 border-b border-[var(--app-border)] pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <div class="flex items-center gap-2">
-                        <p class="brand-font text-2xl font-bold tracking-tight text-[var(--app-text)] sm:text-3xl">{{ room.name }}</p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p class="brand-font min-w-0 text-2xl font-bold tracking-tight text-[var(--app-text)] sm:text-3xl">{{ room.name }}</p>
                         <el-tag
                             size="small"
                             :type="room.is_direct ? 'warning' : 'info'"
@@ -153,11 +162,18 @@ watch(
             </header>
 
             <div class="mb-4 xl:hidden">
-                <div class="mobile-member-strip flex gap-2 overflow-x-auto pb-1">
+                <div
+                    v-if="room.joined && (!callSupport.voice || !callSupport.video)"
+                    class="mb-3 rounded-[22px] border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                >
+                    {{ callSupport.videoReason || callSupport.voiceReason }}
+                </div>
+
+                <div class="space-y-2">
                     <div
                         v-for="member in room.members"
                         :key="member.id"
-                        class="min-w-[180px] rounded-[22px] border border-[var(--app-border)] bg-white/75 p-3"
+                        class="rounded-[22px] border border-[var(--app-border)] bg-white/75 p-3"
                     >
                         <div class="flex items-center gap-3">
                             <div
@@ -183,6 +199,8 @@ watch(
                                 class="flex-1"
                                 plain
                                 :icon="PhoneFilled"
+                                :disabled="!callSupport.voice"
+                                :title="callSupport.voiceReason"
                                 @click="$emit('start-call', { participant: member, mode: 'voice' })"
                             >
                                 Voice
@@ -192,6 +210,8 @@ watch(
                                 type="primary"
                                 plain
                                 :icon="VideoCameraFilled"
+                                :disabled="!callSupport.video"
+                                :title="callSupport.videoReason"
                                 @click="$emit('start-call', { participant: member, mode: 'video' })"
                             >
                                 Video
@@ -225,7 +245,7 @@ watch(
                         :class="message.sender.id === currentUser.id ? 'justify-end' : 'justify-start'"
                     >
                         <el-card
-                            class="max-w-[92%] rounded-[24px] border-0 sm:max-w-[85%]"
+                            class="max-w-[94%] rounded-[24px] border-0 sm:max-w-[85%]"
                             :class="
                                 message.sender.id === currentUser.id
                                     ? 'message-bubble-self bg-[var(--app-accent)] text-white'
@@ -330,6 +350,13 @@ watch(
                 <el-tag effect="plain">{{ room.member_count }}</el-tag>
             </div>
 
+            <div
+                v-if="room.joined && (!callSupport.voice || !callSupport.video)"
+                class="mt-4 rounded-[22px] border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            >
+                {{ callSupport.videoReason || callSupport.voiceReason }}
+            </div>
+
             <div class="mt-4 space-y-3">
                 <div
                     v-for="member in room.members"
@@ -365,6 +392,8 @@ watch(
                                 circle
                                 plain
                                 :icon="PhoneFilled"
+                                :disabled="!callSupport.voice"
+                                :title="callSupport.voiceReason"
                                 @click="$emit('start-call', { participant: member, mode: 'voice' })"
                             />
                             <el-button
@@ -372,6 +401,8 @@ watch(
                                 type="primary"
                                 plain
                                 :icon="VideoCameraFilled"
+                                :disabled="!callSupport.video"
+                                :title="callSupport.videoReason"
                                 @click="$emit('start-call', { participant: member, mode: 'video' })"
                             />
                         </div>
@@ -392,14 +423,6 @@ watch(
 </template>
 
 <style scoped>
-.mobile-member-strip {
-    scrollbar-width: none;
-}
-
-.mobile-member-strip::-webkit-scrollbar {
-    display: none;
-}
-
 @media (max-width: 767px) {
     .composer-footer {
         position: sticky;

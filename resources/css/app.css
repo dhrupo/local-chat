@@ -15,6 +15,7 @@
     --app-accent-soft: rgba(194, 97, 55, 0.14);
     --app-success: #2e7d5a;
     --app-shadow: 0 24px 60px rgba(74, 54, 33, 0.12);
+    --app-brand-font: "Space Grotesk", sans-serif;
     color: var(--app-text);
     background:
         radial-gradient(circle at top left, rgba(194, 97, 55, 0.18), transparent 24%),
@@ -37,6 +38,8 @@ body {
     font-family: "DM Sans", sans-serif;
     color: var(--app-text);
     background: var(--app-bg);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
 }
 
 .app-shell {
@@ -60,6 +63,28 @@ body {
     font-family: "Space Grotesk", sans-serif;
 }
 
+.el-button {
+    --el-border-radius-base: 16px;
+    --el-font-weight-primary: 700;
+}
+
+.el-button.is-circle {
+    --el-border-radius-base: 999px;
+}
+
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+    border-radius: 18px !important;
+    box-shadow: 0 0 0 1px rgba(71, 53, 34, 0.08) inset !important;
+}
+
+.el-drawer {
+    background:
+        radial-gradient(circle at top left, rgba(194, 97, 55, 0.14), transparent 30%),
+        linear-gradient(180deg, rgba(255, 250, 245, 0.98), rgba(248, 242, 233, 0.98));
+}
+
 .room-scroll,
 .message-scroll {
     scrollbar-width: thin;
@@ -80,4 +105,10 @@ body {
 .message-bubble-self .el-card__body,
 .message-bubble-other .el-card__body {
     padding: 0.85rem 1rem;
+}
+
+@media (max-width: 767px) {
+    body {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
 }

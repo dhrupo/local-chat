@@ -33,14 +33,14 @@ defineEmits(["refresh", "select-room", "join-room", "open-create", "open-direct-
 
 <template>
     <aside class="app-card flex h-full flex-col rounded-[28px] p-4 lg:p-5">
-        <div class="mb-5 flex items-center justify-between gap-3">
+        <div class="mb-5 flex items-start justify-between gap-3">
             <div>
                 <p class="brand-font text-2xl font-bold tracking-tight text-[var(--app-text)]">Local Chat</p>
                 <p class="text-sm text-[var(--app-text-soft)]">
                     LAN-only rooms for your current Wi-Fi network
                 </p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex shrink-0 items-center gap-2">
                 <el-button circle :icon="RefreshRight" @click="$emit('refresh')" />
                 <el-button type="primary" circle :icon="Plus" @click="$emit('open-create')" />
             </div>
@@ -54,7 +54,7 @@ defineEmits(["refresh", "select-room", "join-room", "open-create", "open-direct-
                 </div>
                 <div>
                     <p class="font-semibold text-[var(--app-text)]">{{ user.display_name }}</p>
-                    <p class="text-sm text-[var(--app-text-soft)]">This device identity is local to the current browser.</p>
+                    <p class="text-sm text-[var(--app-text-soft)]">This device identity stays local to this browser.</p>
                 </div>
             </div>
         </div>
@@ -72,7 +72,7 @@ defineEmits(["refresh", "select-room", "join-room", "open-create", "open-direct-
                     <button
                         v-for="participant in participants"
                         :key="participant.id"
-                        class="w-full rounded-[24px] border border-[var(--app-border)] bg-white/80 p-4 text-left transition duration-200 hover:border-[var(--app-border-strong)] hover:bg-white"
+                        class="w-full rounded-[24px] border border-[var(--app-border)] bg-white/80 p-4 text-left transition duration-200 hover:border-[var(--app-border-strong)] hover:bg-white active:scale-[0.995]"
                         @click="$emit('open-direct-chat', participant.id)"
                     >
                         <div class="flex items-center gap-3">
@@ -120,7 +120,7 @@ defineEmits(["refresh", "select-room", "join-room", "open-create", "open-direct-
                     <button
                         v-for="room in directChats"
                         :key="room.id"
-                        class="w-full rounded-[24px] border p-4 text-left transition duration-200"
+                        class="w-full rounded-[24px] border p-4 text-left transition duration-200 active:scale-[0.995]"
                         :class="
                             room.id === activeRoomId
                                 ? 'border-[var(--app-accent)] bg-[var(--app-accent-soft)] shadow-[0_10px_30px_rgba(194,97,55,0.16)]'
@@ -156,7 +156,7 @@ defineEmits(["refresh", "select-room", "join-room", "open-create", "open-direct-
                     <button
                         v-for="room in joinedRooms"
                         :key="room.id"
-                        class="w-full rounded-[24px] border p-4 text-left transition duration-200"
+                        class="w-full rounded-[24px] border p-4 text-left transition duration-200 active:scale-[0.995]"
                         :class="
                             room.id === activeRoomId
                                 ? 'border-[var(--app-accent)] bg-[var(--app-accent-soft)] shadow-[0_10px_30px_rgba(194,97,55,0.16)]'

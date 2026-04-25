@@ -1,24 +1,36 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { Menu, Plus, RefreshRight } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import RoomSidebar from "../components/chat/RoomSidebar.vue";
 import ChatWindow from "../components/chat/ChatWindow.vue";
-import CallOverlay from "../components/chat/CallOverlay.vue";
-import CreateRoomDialog from "../components/chat/CreateRoomDialog.vue";
-import RuntimeStatusPanel from "../components/chat/RuntimeStatusPanel.vue";
 import { useAuthStore } from "../stores/auth";
 import { useChatStore } from "../stores/chat";
 import { useCallStore } from "../stores/call";
+
+const CallOverlay = defineAsyncComponent(() => import("../components/chat/CallOverlay.vue"));
+const CreateRoomDialog = defineAsyncComponent(() => import("../components/chat/CreateRoomDialog.vue"));
+const RuntimeStatusPanel = defineAsyncComponent(() => import("../components/chat/RuntimeStatusPanel.vue"));
 
 const router = useRouter();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
 const callStore = useCallStore();
 const createDialogOpen = ref(false);
+const sidebarOpen = ref(false);
+const isDesktop = ref(window.innerWidth >= 1280);
 
 const currentUser = computed(() => authStore.user);
 const activeRoom = computed(() => chatStore.activeRoom);
+
+const syncViewport = () => {
+    isDesktop.value = window.innerWidth >= 1280;
+
+    if (isDesktop.value) {
+        sidebarOpen.value = false;
+    }
+};
 
 const refreshRooms = async () => {
     await Promise.all([chatStore.loadRooms(), chatStore.loadDirectory()]);
@@ -42,6 +54,7 @@ const handleCreateRoom = async (payload) => {
 const handleJoinRoom = async (roomId) => {
     try {
         await chatStore.joinRoom(roomId);
+        sidebarOpen.value = false;
         ElMessage.success("You joined the room.");
     } catch (error) {
         ElMessage.error(error.response?.data?.message || "Unable to join room.");
@@ -51,6 +64,7 @@ const handleJoinRoom = async (roomId) => {
 const handleOpenDirectChat = async (participantId) => {
     try {
         await chatStore.openDirectChat(participantId);
+        sidebarOpen.value = false;
     } catch (error) {
         ElMessage.error(error.response?.data?.message || "Unable to open direct chat.");
     }
@@ -137,20 +151,23 @@ const resetDevice = async () => {
 };
 
 onMounted(async () => {
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
     await chatStore.hydrate();
     chatStore.startRealtime(currentUser.value?.id);
     callStore.startRealtime(currentUser.value?.id);
 });
 
 onUnmounted(() => {
+    window.removeEventListener("resize", syncViewport);
     chatStore.stopRealtime(currentUser.value?.id);
     callStore.stopRealtime();
 });
 </script>
 
 <template>
-    <main class="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
-        <div class="mb-4 rounded-[28px] bg-white/45 px-5 py-4 backdrop-blur">
+    <main class="mx-auto max-w-[1600px] px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
+        <div class="mb-4 rounded-[28px] bg-white/45 px-4 py-4 backdrop-blur sm:px-5">
             <RuntimeStatusPanel
                 :direct-chat-count="chatStore.directChats.length"
                 :group-room-count="chatStore.joinedRooms.length"
@@ -160,20 +177,41 @@ onUnmounted(() => {
             </div>
         </div>
 
+        <div class="mb-4 flex items-center gap-2 xl:hidden">
+            <el-button plain :icon="Menu" @click="sidebarOpen = true">
+                Rooms
+            </el-button>
+            <el-button plain :icon="RefreshRight" @click="refreshRooms" />
+            <el-button type="primary" plain :icon="Plus" @click="createDialogOpen = true">
+                New Group
+            </el-button>
+            <div
+                v-if="activeRoom"
+                class="min-w-0 flex-1 rounded-2xl border border-[var(--app-border)] bg-white/70 px-3 py-2 text-right"
+            >
+                <p class="truncate text-sm font-semibold text-[var(--app-text)]">{{ activeRoom.name }}</p>
+                <p class="truncate text-xs text-[var(--app-text-soft)]">
+                    {{ activeRoom.is_direct ? "Direct chat" : `${activeRoom.member_count} members` }}
+                </p>
+            </div>
+        </div>
+
         <div class="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-            <RoomSidebar
-                :user="currentUser"
-                :participants="chatStore.directory.filter((participant) => participant.id !== currentUser?.id)"
-                :direct-chats="chatStore.directChats"
-                :joined-rooms="chatStore.joinedRooms"
-                :discoverable-rooms="chatStore.discoverableRooms"
-                :active-room-id="chatStore.activeRoomId"
-                @refresh="refreshRooms"
-                @select-room="chatStore.selectRoom"
-                @join-room="handleJoinRoom"
-                @open-direct-chat="handleOpenDirectChat"
-                @open-create="createDialogOpen = true"
-            />
+            <div class="hidden xl:block">
+                <RoomSidebar
+                    :user="currentUser"
+                    :participants="chatStore.directory.filter((participant) => participant.id !== currentUser?.id)"
+                    :direct-chats="chatStore.directChats"
+                    :joined-rooms="chatStore.joinedRooms"
+                    :discoverable-rooms="chatStore.discoverableRooms"
+                    :active-room-id="chatStore.activeRoomId"
+                    @refresh="refreshRooms"
+                    @select-room="chatStore.selectRoom"
+                    @join-room="handleJoinRoom"
+                    @open-direct-chat="handleOpenDirectChat"
+                    @open-create="createDialogOpen = true"
+                />
+            </div>
 
             <ChatWindow
                 :current-user="currentUser"
@@ -187,6 +225,29 @@ onUnmounted(() => {
                 @start-call="handleStartCall"
             />
         </div>
+
+        <el-drawer
+            v-model="sidebarOpen"
+            direction="ltr"
+            size="92%"
+            :with-header="false"
+            append-to-body
+            class="mobile-room-drawer"
+        >
+            <RoomSidebar
+                :user="currentUser"
+                :participants="chatStore.directory.filter((participant) => participant.id !== currentUser?.id)"
+                :direct-chats="chatStore.directChats"
+                :joined-rooms="chatStore.joinedRooms"
+                :discoverable-rooms="chatStore.discoverableRooms"
+                :active-room-id="chatStore.activeRoomId"
+                @refresh="refreshRooms"
+                @select-room="(roomId) => { chatStore.selectRoom(roomId); sidebarOpen = false; }"
+                @join-room="handleJoinRoom"
+                @open-direct-chat="handleOpenDirectChat"
+                @open-create="() => { createDialogOpen = true; sidebarOpen = false; }"
+            />
+        </el-drawer>
 
         <CallOverlay
             :incoming-call="callStore.incomingCall"
@@ -207,3 +268,13 @@ onUnmounted(() => {
         />
     </main>
 </template>
+
+<style scoped>
+:global(.mobile-room-drawer) {
+    background: rgba(244, 239, 230, 0.96);
+}
+
+:global(.mobile-room-drawer .el-drawer__body) {
+    padding: 12px;
+}
+</style>

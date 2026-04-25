@@ -121,16 +121,25 @@ watch(
 
 <template>
     <section v-if="room" class="grid h-full gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div class="app-card flex min-h-[70vh] flex-col rounded-[28px] p-4 md:p-5">
+        <div class="app-card flex min-h-[70vh] flex-col rounded-[28px] p-3 sm:p-4 md:p-5">
             <header class="mb-4 flex flex-col gap-4 border-b border-[var(--app-border)] pb-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <p class="brand-font text-3xl font-bold tracking-tight text-[var(--app-text)]">{{ room.name }}</p>
-                    <p class="mt-1 text-sm text-[var(--app-text-soft)]">
+                    <div class="flex items-center gap-2">
+                        <p class="brand-font text-2xl font-bold tracking-tight text-[var(--app-text)] sm:text-3xl">{{ room.name }}</p>
+                        <el-tag
+                            size="small"
+                            :type="room.is_direct ? 'warning' : 'info'"
+                            effect="plain"
+                        >
+                            {{ room.is_direct ? "Direct" : "Group" }}
+                        </el-tag>
+                    </div>
+                    <p class="mt-1 max-w-2xl text-sm text-[var(--app-text-soft)]">
                         {{ roomDescription }}
                     </p>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                     <el-tag type="success" effect="light">{{ onlineMembers.length }} online</el-tag>
                     <el-button
                         v-if="room.joined && !room.is_direct"
@@ -142,6 +151,55 @@ watch(
                     </el-button>
                 </div>
             </header>
+
+            <div class="mb-4 xl:hidden">
+                <div class="mobile-member-strip flex gap-2 overflow-x-auto pb-1">
+                    <div
+                        v-for="member in room.members"
+                        :key="member.id"
+                        class="min-w-[180px] rounded-[22px] border border-[var(--app-border)] bg-white/75 p-3"
+                    >
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--app-accent-soft)] text-sm font-semibold text-[var(--app-accent-deep)]"
+                            >
+                                {{ member.initials }}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-semibold text-[var(--app-text)]">
+                                    {{ member.display_name }}
+                                </p>
+                                <p class="truncate text-xs text-[var(--app-text-soft)]">
+                                    {{ member.is_online ? "Online now" : "Away" }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="room.joined && member.id !== currentUser.id"
+                            class="mt-3 flex items-center gap-2"
+                        >
+                            <el-button
+                                class="flex-1"
+                                plain
+                                :icon="PhoneFilled"
+                                @click="$emit('start-call', { participant: member, mode: 'voice' })"
+                            >
+                                Voice
+                            </el-button>
+                            <el-button
+                                class="flex-1"
+                                type="primary"
+                                plain
+                                :icon="VideoCameraFilled"
+                                @click="$emit('start-call', { participant: member, mode: 'video' })"
+                            >
+                                Video
+                            </el-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div ref="messageContainer" class="message-scroll flex-1 space-y-4 overflow-y-auto pr-1">
                 <div v-if="loading" class="flex h-full items-center justify-center py-12">
@@ -167,7 +225,7 @@ watch(
                         :class="message.sender.id === currentUser.id ? 'justify-end' : 'justify-start'"
                     >
                         <el-card
-                            class="max-w-[85%] rounded-[24px] border-0"
+                            class="max-w-[92%] rounded-[24px] border-0 sm:max-w-[85%]"
                             :class="
                                 message.sender.id === currentUser.id
                                     ? 'message-bubble-self bg-[var(--app-accent)] text-white'
@@ -234,7 +292,7 @@ watch(
                 </div>
             </div>
 
-            <footer v-if="room.joined" class="mt-4 border-t border-[var(--app-border)] pt-4">
+            <footer v-if="room.joined" class="composer-footer mt-4 border-t border-[var(--app-border)] pt-4">
                 <div class="flex flex-col gap-3 md:flex-row">
                     <input
                         ref="fileInput"
@@ -242,7 +300,7 @@ watch(
                         class="hidden"
                         @change="onFileChange"
                     />
-                    <el-button plain :icon="Paperclip" class="md:self-end" @click="chooseFile">
+                    <el-button plain :icon="Paperclip" class="w-full md:w-auto md:self-end" @click="chooseFile">
                         Share File (5 MB)
                     </el-button>
                     <el-input
@@ -255,7 +313,7 @@ watch(
                     />
                     <el-button
                         type="primary"
-                        class="md:self-end"
+                        class="w-full md:w-auto md:self-end"
                         :loading="sending"
                         :disabled="!draft.trim()"
                         @click="submit"
@@ -266,7 +324,7 @@ watch(
             </footer>
         </div>
 
-        <aside class="app-card rounded-[28px] p-4 md:p-5">
+        <aside class="hidden xl:block app-card rounded-[28px] p-4 md:p-5">
             <div class="flex items-center justify-between">
                 <h2 class="brand-font text-xl font-bold">Members</h2>
                 <el-tag effect="plain">{{ room.member_count }}</el-tag>
@@ -332,3 +390,25 @@ watch(
         </div>
     </section>
 </template>
+
+<style scoped>
+.mobile-member-strip {
+    scrollbar-width: none;
+}
+
+.mobile-member-strip::-webkit-scrollbar {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .composer-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        margin-inline: -0.75rem;
+        padding: 1rem 0.75rem calc(1rem + env(safe-area-inset-bottom));
+        background: linear-gradient(180deg, rgba(244, 239, 230, 0.12), rgba(255, 252, 247, 0.98) 24%);
+        backdrop-filter: blur(16px);
+    }
+}
+</style>

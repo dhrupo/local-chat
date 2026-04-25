@@ -1,6 +1,3 @@
-import SetupPage from "./pages/SetupPage.vue";
-import ChatPage from "./pages/ChatPage.vue";
-
 export default [
     {
         path: "/",
@@ -9,7 +6,7 @@ export default [
     {
         path: "/setup",
         name: "setup",
-        component: SetupPage,
+        component: () => import("./pages/SetupPage.vue"),
         meta: {
             guestOnly: true,
         },
@@ -17,7 +14,7 @@ export default [
     {
         path: "/chat",
         name: "chat",
-        component: ChatPage,
+        component: () => import("./pages/ChatPage.vue"),
         meta: {
             requiresAuth: true,
         },

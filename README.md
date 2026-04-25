@@ -1,15 +1,21 @@
 # Local Chat
 
-Local Chat is a Laravel 12 + Vue 3 application for realtime group chat on a single Wi-Fi network.
+Local Chat is a Laravel 12 + Vue 3 application for realtime chat between nearby devices on the same Wi-Fi network.
 
 Current scope:
 
 - device-based onboarding with `display_name + device_uuid`
+- reusable direct `1:1` chats
 - group rooms
 - realtime text messaging over WebSockets
-- room file sharing
+- in-app toast alerts and browser notifications for incoming messages/calls
+- built-in notification sounds for messages and incoming calls
+- room file sharing up to `5 MB`
 - room membership and unread counts
+- active room persistence across page reloads
 - room presence on the local network
+- mobile-friendly room creation and incoming call UI
+- runtime network/media status panel
 - direct `1:1` voice/video signaling over WebRTC
 
 The app uses:
@@ -34,6 +40,12 @@ It detects your LAN IP, prepares `.env`, runs migrations, builds assets, starts 
 
 This is still a local HTTP URL. Text chat, rooms, files, realtime updates, and notifications can work there. Camera and microphone access on phones usually requires trusted HTTPS, so voice/video may need a trusted local certificate or a real trusted hostname.
 
+If the script cannot detect your LAN address, run it with an override:
+
+```bash
+LAN_IP=192.168.0.15 ./scripts/local-chat-start.sh
+```
+
 ## Docker Run
 
 If Docker is easier for sharing the app with another machine:
@@ -50,6 +62,17 @@ http://localhost:8000
 
 From another device on the same Wi-Fi, replace `localhost` with the host machine's LAN IP. Docker exposes the app on port `8000`, Reverb on port `8080`, and MySQL on host port `3307`.
 
+## What Users Get
+
+- direct chats and group rooms in the same interface
+- unread markers and unread room counts
+- incoming message toast alerts with notification sound
+- browser notifications for messages and incoming calls when permission is granted
+- file sharing capped at `5 MB` per upload
+- active room restored after page reload
+- installable app metadata for supported browsers
+- a runtime status panel that shows realtime connection, notification permission, secure-context state, media support, and TURN availability
+
 ## Identity Model
 
 This app does not use internet accounts, registration, or passwords.
@@ -60,6 +83,8 @@ Each browser/device:
 2. asks the user for a display name
 3. stores that identity locally
 4. reconnects to the LAN server with the same device identity later
+
+Authentication is local-session based. There are no remote user accounts, email logins, or passwords.
 
 ## Local Setup
 
@@ -127,6 +152,8 @@ npm run build
 
 The client websocket host follows the browser hostname by default, so opening the app through the LAN IP is usually enough as long as port `8080` is reachable on the network.
 
+For local HTTPS experiments, make sure the page origin and websocket origin stay aligned. If you open the app on `https://192.168.x.x:8443`, the frontend should also be built with matching `VITE_REVERB_*` values.
+
 ## HTTPS And Calls
 
 Modern browsers treat `localhost` as secure, but not plain LAN IPs like `http://192.168.0.15:8000`. On phones, microphone and camera permissions usually fail unless the page is opened from a trusted HTTPS origin.
@@ -142,6 +169,14 @@ Without trusted HTTPS, the app cannot force mobile browsers to allow camera or m
 ## Voice/Video Reliability
 
 Direct `1:1` WebRTC calls work best when both devices are on the same Wi-Fi and the browser allows media permissions.
+
+The current call flow includes:
+
+- incoming call modal with ringtone
+- optional browser notification for incoming calls
+- voice and video call modes
+- direct peer-to-peer media after signaling
+- TURN fallback when configured
 
 If calls need to work across stricter networks, configure a TURN server in `.env` before building assets:
 
@@ -160,6 +195,14 @@ npm run build
 ## Installable App
 
 The app includes a basic web manifest, so browsers that support installation can add it to the home screen or app launcher. This is still the same local web app and uses the same LAN URL.
+
+## Limits And Tradeoffs
+
+- file uploads are limited to `5 MB` each
+- group voice/video calling is not implemented
+- calls are optimized for same-LAN use first
+- trusted HTTPS is still required for reliable mobile microphone/camera permissions
+- browser notifications and audio playback remain best-effort because browsers can block them until the user interacts with the page
 
 ## Test And Build
 

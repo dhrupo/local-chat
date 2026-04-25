@@ -1,4 +1,4 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.2-cli-alpine
 
 RUN apk add --no-cache \
     bash \
@@ -10,7 +10,7 @@ RUN apk add --no-cache \
     oniguruma-dev \
     unzip \
     zip \
-    && docker-php-ext-install bcmath intl mbstring pdo_mysql zip
+    && docker-php-ext-install bcmath intl mbstring pcntl pdo_mysql zip
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

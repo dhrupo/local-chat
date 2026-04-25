@@ -38,18 +38,20 @@ class ChatRoomResource extends JsonResource
             'last_message_at' => optional($this->last_message_at)->toIso8601String(),
             'joined' => (bool) $membership,
             'membership_role' => $membership?->role,
-            'member_count' => $this->members->count(),
+            'member_count' => $membership ? $this->members->count() : null,
             'unread_count' => $unreadCount,
             'direct_participant' => $this->is_direct && $otherParticipant
                 ? ChatMemberResource::make($otherParticipant)->resolve()
                 : null,
-            'latest_message' => $latestMessage ? [
+            'latest_message' => $membership && $latestMessage ? [
                 'id' => $latestMessage->id,
                 'body' => $latestMessage->body,
                 'sender_name' => $latestMessage->relationLoaded('sender') ? $latestMessage->sender?->display_name : null,
                 'created_at' => optional($latestMessage->created_at)->toIso8601String(),
             ] : null,
-            'members' => ChatMemberResource::collection($this->whenLoaded('members')),
+            'members' => $membership
+                ? ChatMemberResource::collection($this->whenLoaded('members'))
+                : [],
         ];
     }
 }

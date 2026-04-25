@@ -198,7 +198,28 @@ class ChatRoomWorkflowTest extends TestCase
                 'name' => 'Open Updates',
                 'joined' => false,
                 'is_direct' => false,
-            ]);
+            ])
+            ->assertJsonPath('data.0.latest_message', null)
+            ->assertJsonPath('data.0.members', [])
+            ->assertJsonPath('data.0.member_count', null);
+    }
+
+    public function test_user_cannot_join_direct_room_by_id(): void
+    {
+        $owner = User::factory()->create(['name' => 'Dhrupo']);
+        $participant = User::factory()->create(['name' => 'Turna']);
+        $intruder = User::factory()->create(['name' => 'Intruder']);
+
+        $this->actingAs($owner);
+
+        $roomId = $this->postJson("/api/chat/direct/{$participant->id}")
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->actingAs($intruder);
+
+        $this->postJson("/api/chat/rooms/{$roomId}/join")
+            ->assertForbidden();
     }
 
     public function test_non_member_cannot_view_room_details_or_messages(): void

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\ChatRoom;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -51,6 +52,46 @@ class DeviceSessionTest extends TestCase
     {
         $caller = User::factory()->create();
         $recipient = User::factory()->create();
+        $room = ChatRoom::query()->create([
+            'name' => 'Call Room',
+            'created_by' => $caller->id,
+        ]);
+
+        $room->members()->sync([
+            $caller->id => [
+                'role' => 'owner',
+                'joined_at' => now(),
+                'last_read_message_id' => null,
+            ],
+            $recipient->id => [
+                'role' => 'member',
+                'joined_at' => now(),
+                'last_read_message_id' => null,
+            ],
+        ]);
+
+        $this->actingAs($caller);
+
+        $this->postJson('/api/calls/signal', [
+            'to_participant_id' => $recipient->id,
+            'room_id' => $room->id,
+            'signal_type' => 'offer',
+            'payload' => [
+                'description' => [
+                    'type' => 'offer',
+                    'sdp' => 'v=0',
+                ],
+                'mode' => 'video',
+            ],
+        ])->assertOk()->assertJson([
+            'ok' => true,
+        ]);
+    }
+
+    public function test_device_cannot_send_call_signal_without_shared_room(): void
+    {
+        $caller = User::factory()->create();
+        $recipient = User::factory()->create();
 
         $this->actingAs($caller);
 
@@ -64,8 +105,7 @@ class DeviceSessionTest extends TestCase
                 ],
                 'mode' => 'video',
             ],
-        ])->assertOk()->assertJson([
-            'ok' => true,
-        ]);
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['room_id']);
     }
 }

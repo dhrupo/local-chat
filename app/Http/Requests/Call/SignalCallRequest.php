@@ -27,7 +27,7 @@ class SignalCallRequest extends FormRequest
                 Rule::in(['offer', 'answer', 'ice-candidate', 'reject-call', 'end-call']),
             ],
             'payload' => ['nullable', 'array'],
-            'room_id' => ['nullable', 'integer', 'exists:chat_rooms,id'],
+            'room_id' => ['required', 'integer', 'exists:chat_rooms,id'],
         ];
     }
 }

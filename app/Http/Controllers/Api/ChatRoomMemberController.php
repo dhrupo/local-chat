@@ -16,6 +16,8 @@ class ChatRoomMemberController extends Controller
 
     public function store(ChatRoom $room): ChatRoomResource
     {
+        abort_if($room->is_direct, 403, 'Direct chats cannot be joined.');
+
         $room = $this->chatRoomService->join($room, request()->user());
 
         return new ChatRoomResource($room);

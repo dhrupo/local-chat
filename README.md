@@ -29,6 +29,30 @@ The app uses:
 - `Laravel Reverb`
 - `Laravel Echo`
 
+## Screenshots
+
+### Setup
+
+![Setup Page](docs/screenshots/setup-page.png)
+
+### Desktop Chat
+
+![Desktop Group Chat](docs/screenshots/chat-desktop-group.png)
+
+![Desktop Direct Chat](docs/screenshots/chat-desktop-direct.png)
+
+### Mobile Chat
+
+![Mobile Chat](docs/screenshots/chat-mobile.png)
+
+![Mobile Room Drawer](docs/screenshots/chat-mobile-drawer.png)
+
+### Room Creation
+
+![Create Room Mobile](docs/screenshots/create-room-mobile.png)
+
+![Create Room Desktop](docs/screenshots/create-room-desktop.png)
+
 ## Easiest Local Run
 
 For one-machine hosting on your Wi-Fi, use the helper script:
